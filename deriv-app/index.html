@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pulse — Synthetic Indices Trading</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+<style>
+  :root{
+    --bg:#0A0E14;
+    --panel:#10151D;
+    --panel-2:#141B25;
+    --border:#1E2530;
+    --text:#E8ECF1;
+    --muted:#6B7684;
+    --accent:#00D9C0;
+    --accent-dim:#0A3B36;
+    --up:#26D07C;
+    --down:#FF5C5C;
+    --warn:#FFB020;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;height:100%;}
+  ::selection{background:var(--accent-dim);color:var(--accent);}
+
+  .num{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;}
+  .brand{font-family:'Space Grotesk',sans-serif;font-weight:700;letter-spacing:-0.01em;}
+
+  /* ---------- Top bar ---------- */
+  header{
+    display:flex;align-items:center;gap:20px;
+    padding:0 20px;height:56px;
+    border-bottom:1px solid var(--border);
+    background:var(--panel);
+  }
+  .logo{display:flex;align-items:center;gap:9px;font-size:1.15rem;}
+  .logo .dot{width:9px;height:9px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent);animation:pulse 2s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+
+  .ticker-strip{
+    flex:1;display:flex;gap:0;overflow-x:auto;height:100%;
+    -ms-overflow-style:none;scrollbar-width:none;
+  }
+  .ticker-strip::-webkit-scrollbar{display:none;}
+  .ticker-item{
+    display:flex;align-items:center;gap:8px;padding:0 16px;
+    border-right:1px solid var(--border);cursor:pointer;white-space:nowrap;
+    transition:background .15s;
+  }
+  .ticker-item:hover{background:var(--panel-2);}
+  .ticker-item.active{background:var(--accent-dim);}
+  .ticker-item .sym{font-size:.72rem;color:var(--muted);font-family:'IBM Plex Mono',monospace;}
+  .ticker-item .price{font-size:.85rem;font-weight:600;}
+  .ticker-item svg{width:44px;height:20px;display:block;}
+  .up-color{color:var(--up);}
+  .down-color{color:var(--down);}
+
+  .account-box{display:flex;align-items:center;gap:14px;padding-left:14px;border-left:1px solid var(--border);height:100%;}
+  .status-dot{width:7px;height:7px;border-radius:50%;background:var(--muted);}
+  .status-dot.live{background:var(--up);box-shadow:0 0 6px var(--up);}
+  #balanceDisplay{font-size:.95rem;font-weight:600;}
+  #balanceDisplay .cur{color:var(--muted);font-weight:400;font-size:.75rem;}
+  .btn{
+    background:var(--accent);color:#00201C;border:none;padding:9px 16px;
+    border-radius:6px;font-weight:600;font-size:.85rem;cursor:pointer;
+    font-family:'Inter',sans-serif;transition:opacity .15s;text-decoration:none;
+    display:inline-block;
+  }
+  .btn:hover{opacity:.85;}
+  .btn:disabled{opacity:.4;cursor:not-allowed;}
+  .btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text);}
+
+  /* ---------- Layout ---------- */
+  .layout{display:grid;grid-template-columns:1fr 340px;grid-template-rows:1fr auto;height:calc(100vh - 56px);}
+  .chart-area{grid-column:1;grid-row:1;position:relative;border-right:1px solid var(--border);}
+  .chart-toolbar{
+    display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid var(--border);
+  }
+  .chart-toolbar select{
+    background:var(--panel-2);color:var(--text);border:1px solid var(--border);
+    border-radius:5px;padding:6px 10px;font-family:'IBM Plex Mono',monospace;font-size:.8rem;
+  }
+  #chartContainer{width:100%;height:calc(100% - 45px);}
+
+  .ticket{grid-column:2;grid-row:1;background:var(--panel);display:flex;flex-direction:column;overflow-y:auto;}
+  .tabs{display:flex;border-bottom:1px solid var(--border);}
+  .tab{flex:1;text-align:center;padding:13px 0;font-size:.85rem;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;}
+  .tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+  .ticket-body{padding:18px;}
+  .field{margin-bottom:16px;}
+  .field label{display:block;font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;}
+  .field input, .field select{
+    width:100%;background:var(--panel-2);border:1px solid var(--border);color:var(--text);
+    padding:10px;border-radius:6px;font-family:'IBM Plex Mono',monospace;font-size:.9rem;
+  }
+  .duo{display:flex;gap:10px;}
+  .duo .field{flex:1;}
+  .payout-preview{
+    background:var(--panel-2);border:1px solid var(--border);border-radius:8px;
+    padding:12px;margin-bottom:16px;font-size:.8rem;color:var(--muted);
+  }
+  .payout-preview .val{color:var(--text);font-family:'IBM Plex Mono',monospace;font-weight:600;}
+  .trade-buttons{display:flex;gap:10px;}
+  .trade-buttons button{
+    flex:1;padding:14px 0;border-radius:8px;border:none;font-weight:700;font-size:.95rem;cursor:pointer;
+    font-family:'Space Grotesk',sans-serif;
+  }
+  .btn-up{background:var(--up);color:#04140B;}
+  .btn-down{background:var(--down);color:#1A0303;}
+  .btn-up:hover, .btn-down:hover{filter:brightness(1.08);}
+  .btn-up:disabled, .btn-down:disabled{opacity:.4;cursor:not-allowed;}
+
+  /* ---------- Bottom panel ---------- */
+  .bottom-panel{grid-column:1/3;grid-row:2;border-top:1px solid var(--border);background:var(--panel);max-height:220px;overflow-y:auto;}
+  .bottom-tabs{display:flex;gap:2px;padding:8px 16px 0;border-bottom:1px solid var(--border);}
+  .bottom-tab{padding:8px 14px;font-size:.78rem;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;}
+  .bottom-tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+  table{width:100%;border-collapse:collapse;font-size:.8rem;}
+  th{text-align:left;color:var(--muted);font-weight:500;padding:8px 16px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--panel);}
+  td{padding:8px 16px;border-bottom:1px solid var(--border);font-family:'IBM Plex Mono',monospace;}
+  .empty-row td{color:var(--muted);text-align:center;padding:20px;font-family:'Inter',sans-serif;}
+  .pnl-pos{color:var(--up);}
+  .pnl-neg{color:var(--down);}
+  .close-btn{background:transparent;border:1px solid var(--border);color:var(--muted);padding:4px 10px;border-radius:5px;font-size:.72rem;cursor:pointer;}
+  .close-btn:hover{border-color:var(--down);color:var(--down);}
+
+  /* ---------- Gate (login) screen ---------- */
+  #gate{
+    position:fixed;inset:0;background:var(--bg);z-index:50;
+    display:flex;align-items:center;justify-content:center;flex-direction:column;gap:22px;text-align:center;padding:20px;
+  }
+  #gate .mark{font-size:2.2rem;}
+  #gate p{color:var(--muted);max-width:380px;font-size:.9rem;line-height:1.5;}
+  #gate.hidden{display:none;}
+  .acct-picker{display:flex;flex-direction:column;gap:8px;width:280px;}
+  .acct-opt{
+    background:var(--panel);border:1px solid var(--border);padding:12px 14px;border-radius:8px;
+    cursor:pointer;text-align:left;font-family:'IBM Plex Mono',monospace;font-size:.85rem;
+  }
+  .acct-opt:hover{border-color:var(--accent);}
+</style>
+</head>
+<body>
+
+<!-- Login / account gate -->
+<div id="gate">
+  <div class="mark brand"><span style="color:var(--accent)">●</span> PULSE</div>
+  <p>A live trading terminal for Deriv's synthetic volatility indices. Connect your Deriv account to start trading.</p>
+  <button id="loginBtn" class="btn">Log in with Deriv</button>
+  <div id="acctPickerWrap"></div>
+  <div id="gateStatus" class="num" style="color:var(--muted);font-size:.78rem;"></div>
+</div>
+
+<!-- Main terminal (hidden until authorized) -->
+<div id="terminal" style="display:none;">
+  <header>
+    <div class="logo brand"><span class="dot"></span>PULSE</div>
+    <div class="ticker-strip" id="tickerStrip"></div>
+    <div class="account-box">
+      <span class="status-dot" id="connDot"></span>
+      <div id="balanceDisplay">— <span class="cur"></span></div>
+      <button class="btn btn-ghost" id="logoutBtn">Disconnect</button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <div class="chart-area">
+      <div class="chart-toolbar">
+        <select id="symbolSelect"></select>
+        <select id="tfSelect">
+          <option value="60">1m</option>
+          <option value="120">2m</option>
+          <option value="300">5m</option>
+          <option value="900">15m</option>
+        </select>
+      </div>
+      <div id="chartContainer"></div>
+    </div>
+
+    <div class="ticket">
+      <div class="tabs">
+        <div class="tab active" data-tab="riseFall">Rise / Fall</div>
+        <div class="tab" data-tab="multipliers">Multipliers</div>
+      </div>
+
+      <!-- Rise/Fall panel -->
+      <div class="ticket-body" id="panel-riseFall">
+        <div class="duo">
+          <div class="field">
+            <label>Duration unit</label>
+            <select id="rf-unit">
+              <option value="t">Ticks</option>
+              <option value="m">Minutes</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Duration</label>
+            <input type="number" id="rf-duration" value="5" min="1">
+          </div>
+        </div>
+        <div class="field">
+          <label>Stake (<span id="rf-cur">USD</span>)</label>
+          <input type="number" id="rf-stake" value="10" min="0.35" step="0.01">
+        </div>
+        <div class="payout-preview" id="rf-preview">Payout preview will appear here once connected.</div>
+        <div class="trade-buttons">
+          <button class="btn-up" id="rf-rise" disabled>▲ Rise</button>
+          <button class="btn-down" id="rf-fall" disabled>▼ Fall</button>
+        </div>
+      </div>
+
+      <!-- Multipliers panel -->
+      <div class="ticket-body" id="panel-multipliers" style="display:none;">
+        <div class="field">
+          <label>Multiplier</label>
+          <select id="mult-value">
+            <option value="20">×20</option>
+            <option value="50">×50</option>
+            <option value="100">×100</option>
+            <option value="150">×150</option>
+            <option value="200">×200</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Stake (<span id="mult-cur">USD</span>)</label>
+          <input type="number" id="mult-stake" value="10" min="1" step="0.01">
+        </div>
+        <div class="payout-preview">Multipliers use leverage — losses are limited to your stake plus any deficit protection isn't applied here. Trade with care.</div>
+        <div class="trade-buttons">
+          <button class="btn-up" id="mult-up" disabled>▲ Up</button>
+          <button class="btn-down" id="mult-down" disabled>▼ Down</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="bottom-panel">
+      <div class="bottom-tabs">
+        <div class="bottom-tab active" data-btab="open">Open Positions</div>
+        <div class="bottom-tab" data-btab="closed">History</div>
+      </div>
+      <table id="openTable">
+        <thead><tr><th>Contract</th><th>Symbol</th><th>Stake</th><th>P/L</th><th>Status</th><th></th></tr></thead>
+        <tbody id="openTableBody"><tr class="empty-row"><td colspan="6">No open positions yet.</td></tr></tbody>
+      </table>
+      <table id="closedTable" style="display:none;">
+        <thead><tr><th>Contract</th><th>Symbol</th><th>Stake</th><th>P/L</th><th>Closed</th></tr></thead>
+        <tbody id="closedTableBody"><tr class="empty-row"><td colspan="5">No closed trades yet.</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ================= CONFIG ================= */
+const APP_ID = "340jQNXrItGcDvwd5kjEU";
+const REDIRECT_URL = "https://deriv-app-mauve.vercel.app/";
+const AFFILIATE_TOKEN = "FADPM2SRT75C";
+
+// New Deriv OAuth 2.0 / PKCE + REST endpoints
+const AUTH_URL = "https://auth.deriv.com/oauth2/auth";
+const API_BASE = "https://api.derivws.com/trading/v1/options";
+
+const SYMBOLS = [
+  { code:"R_10",    name:"Volatility 10 Index" },
+  { code:"R_25",    name:"Volatility 25 Index" },
+  { code:"R_50",    name:"Volatility 50 Index" },
+  { code:"R_75",    name:"Volatility 75 Index" },
+  { code:"R_100",   name:"Volatility 100 Index" },
+  { code:"1HZ100V", name:"Volatility 100 (1s) Index" },
+];
+
+/* ================= STATE ================= */
+let socket = null;
+let accessToken = null;
+let currentCurrency = "USD";
+let activeSymbol = "R_10";
+let activeTF = 60;
+let chart, candleSeries;
+let reqId = 1;
+const pending = {}; // req_id -> resolver
+const tickHistory = {}; // symbol -> [prices]
+const openContracts = {}; // contract_id -> row data
+
+/* ================= PKCE HELPERS ================= */
+function randomString(len){
+  const arr = new Uint8Array(len);
+  crypto.getRandomValues(arr);
+  return Array.from(arr, b => ("0" + b.toString(16)).slice(-2)).join("").slice(0, len);
+}
+function base64url(buffer){
+  return btoa(String.fromCharCode(...new Uint8Array(buffer)))
+    .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+async function pkceChallenge(verifier){
+  const data = new TextEncoder().encode(verifier);
+  const digest = await crypto.subtle.digest("SHA-256", data);
+  return base64url(digest);
+}
+
+/* ================= LOGIN GATE ================= */
+document.getElementById("loginBtn").onclick = async (e) => {
+  e.preventDefault();
+  const verifier = randomString(64);
+  const challenge = await pkceChallenge(verifier);
+  const state = randomString(24);
+  sessionStorage.setItem("pkce_verifier", verifier);
+  sessionStorage.setItem("pkce_state", state);
+
+  const params = new URLSearchParams({
+    response_type: "code",
+    client_id: APP_ID,
+    redirect_uri: REDIRECT_URL,
+    scope: "trade account_manage", // matches the "Trade" + "Account management" scopes enabled on your app
+    state,
+    code_challenge: challenge,
+    code_challenge_method: "S256",
+  });
+  if (AFFILIATE_TOKEN) {
+    params.set("t", AFFILIATE_TOKEN);
+  }
+  window.location.href = `${AUTH_URL}?${params.toString()}`;
+};
+
+async function exchangeCodeForToken(code){
+  const verifier = sessionStorage.getItem("pkce_verifier");
+  const statusEl = document.getElementById("gateStatus");
+  statusEl.textContent = "Completing sign-in...";
+  try {
+    const res = await fetch("/api/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        code,
+        code_verifier: verifier,
+        redirect_uri: REDIRECT_URL,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.access_token) {
+      statusEl.textContent = "Login failed: " + (data.error_description || data.error || res.status);
+      return;
+    }
+    sessionStorage.setItem("access_token", data.access_token);
+    sessionStorage.removeItem("pkce_verifier"); // clear it now that it's been used
+    window.history.replaceState({}, "", REDIRECT_URL); // clean the ?code= from the URL
+    accessToken = data.access_token;
+    await showAccountPicker();
+  } catch (err) {
+    statusEl.textContent = "Login failed: " + err.message;
+  }
+}
+
+async function showAccountPicker(){
+  const statusEl = document.getElementById("gateStatus");
+  document.getElementById("loginBtn").style.display = "none";
+  statusEl.textContent = "Loading your accounts...";
+  try {
+    const res = await fetch(`${API_BASE}/accounts`, {
+      headers: { "Authorization": `Bearer ${accessToken}`, "Deriv-App-ID": APP_ID },
+    });
+    const data = await res.json();
+    const accounts = data.accounts || data.data || (Array.isArray(data) ? data : []);
+    if (!accounts.length) {
+      statusEl.textContent = "No accounts found on this token.";
+      return;
+    }
+    statusEl.textContent = "";
+    const wrap = document.getElementById("acctPickerWrap");
+    const picker = document.createElement("div");
+    picker.className = "acct-picker";
+    accounts.forEach(a => {
+      const id = a.account_id || a.id || a.loginid;
+      const currency = a.currency || "USD";
+      const isDemo = a.is_virtual || a.type === "demo" || a.account_type === "demo";
+      const opt = document.createElement("div");
+      opt.className = "acct-opt";
+      opt.textContent = `${id}  ·  ${currency.toUpperCase()}${isDemo ? "  ·  Demo" : ""}`;
+      opt.onclick = () => startTerminal(id, currency);
+      picker.appendChild(opt);
+    });
+    wrap.appendChild(picker);
+  } catch (err) {
+    statusEl.textContent = "Could not load accounts: " + err.message;
+  }
+}
+
+// On page load: resume a session, or handle the OAuth redirect back from Deriv
+(function initAuth(){
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get("code");
+  const savedToken = sessionStorage.getItem("access_token");
+  if (code) {
+    exchangeCodeForToken(code);
+  } else if (savedToken) {
+    accessToken = savedToken;
+    showAccountPicker();
+  }
+})();
+
+document.getElementById("logoutBtn").onclick = () => {
+  sessionStorage.removeItem("access_token");
+  sessionStorage.removeItem("pkce_verifier");
+  window.location.href = REDIRECT_URL;
+};
+
+/* ================= WEBSOCKET CORE ================= */
+function send(msg){
+  return new Promise((resolve) => {
+    const id = reqId++;
+    msg.req_id = id;
+    pending[id] = resolve;
+    socket.send(JSON.stringify(msg));
+  });
+}
+
+async function startTerminal(accountId, currency){
+  currentCurrency = (currency || "USD").toUpperCase();
+  document.getElementById("gate").classList.add("hidden");
+  document.getElementById("terminal").style.display = "block";
+  document.getElementById("rf-cur").textContent = currentCurrency;
+  document.getElementById("mult-cur").textContent = currentCurrency;
+
+  // Get a one-time-password-embedded WebSocket URL for this account
+  const otpRes = await fetch(`${API_BASE}/accounts/${accountId}/otp`, {
+    method: "POST",
+    headers: { "Authorization": `Bearer ${accessToken}`, "Deriv-App-ID": APP_ID },
+  });
+  const otpData = await otpRes.json();
+  const wsUrl = otpData.websocket_url || otpData.ws_url || otpData.url;
+  if (!wsUrl) {
+    console.error("OTP response:", otpData);
+    alert("Could not open a trading connection. Check the browser console for details.");
+    return;
+  }
+
+  socket = new WebSocket(wsUrl);
+  socket.onopen = async () => {
+    document.getElementById("connDot").classList.add("live");
+    await send({ balance: 1, subscribe: 1 });
+    await send({ portfolio: 1 });
+    subscribeAllTicks();
+    loadChart(activeSymbol, activeTF);
+    enableTradeButtons();
+  };
+  socket.onclose = () => document.getElementById("connDot").classList.remove("live");
+  socket.onerror = () => document.getElementById("connDot").classList.remove("live");
+  socket.onmessage = (evt) => handleMessage(JSON.parse(evt.data));
+}
+
+function handleMessage(data){
+  if (data.req_id && pending[data.req_id]) {
+    pending[data.req_id](data);
+    delete pending[data.req_id];
+  }
+
+  if (data.msg_type === "balance" && data.balance) {
+    document.getElementById("balanceDisplay").innerHTML =
+      `${Number(data.balance.balance).toFixed(2)} <span class="cur">${data.balance.currency}</span>`;
+  }
+
+  if (data.msg_type === "tick" && data.tick) {
+    updateTicker(data.tick.symbol, data.tick.quote);
+  }
+
+  if (data.msg_type === "ohlc" && data.ohlc) {
+    candleSeries.update({
+      time: data.ohlc.open_time,
+      open: +data.ohlc.open, high: +data.ohlc.high, low: +data.ohlc.low, close: +data.ohlc.close
+    });
+  }
+
+  if (data.msg_type === "buy" && data.buy) {
+    const c = data.buy;
+    openContracts[c.contract_id] = { contract_id: c.contract_id, symbol: activeSymbol, stake: c.buy_price, profit: 0, status: "open" };
+    renderOpenTable();
+    send({ proposal_open_contract: 1, contract_id: c.contract_id, subscribe: 1 });
+  }
+
+  if (data.msg_type === "proposal_open_contract" && data.proposal_open_contract) {
+    const c = data.proposal_open_contract;
+    if (!openContracts[c.contract_id]) openContracts[c.contract_id] = {};
+    Object.assign(openContracts[c.contract_id], {
+      contract_id: c.contract_id,
+      symbol: c.underlying,
+      stake: c.buy_price,
+      profit: c.profit,
+      status: c.is_sold ? "closed" : "open"
+    });
+    renderOpenTable();
+  }
+
+  if (data.error) {
+    console.error("Deriv API error:", data.error.message);
+    document.getElementById("gateStatus").textContent = data.error.message;
+  }
+}
+
+/* ================= TICKER STRIP ================= */
+function initTickerStrip(){
+  const strip = document.getElementById("tickerStrip");
+  const symSelect = document.getElementById("symbolSelect");
+  SYMBOLS.forEach(s => {
+    tickHistory[s.code] = [];
+    const item = document.createElement("div");
+    item.className = "ticker-item" + (s.code === activeSymbol ? " active" : "");
+    item.id = `ticker-${s.code}`;
+    item.innerHTML = `<span class="sym">${s.code}</span><span class="price num">—</span><svg viewBox="0 0 44 20"><polyline fill="none" stroke="var(--muted)" stroke-width="1.5" points=""/></svg>`;
+    item.onclick = () => switchSymbol(s.code);
+    strip.appendChild(item);
+
+    const opt = document.createElement("option");
+    opt.value = s.code; opt.textContent = s.name;
+    symSelect.appendChild(opt);
+  });
+  symSelect.value = activeSymbol;
+}
+
+function subscribeAllTicks(){
+  SYMBOLS.forEach(s => send({ ticks: s.code, subscribe: 1 }));
+}
+
+function updateTicker(symbol, price){
+  const hist = tickHistory[symbol];
+  if (!hist) return;
+  const prev = hist.length ? hist[hist.length - 1] : price;
+  hist.push(price);
+  if (hist.length > 30) hist.shift();
+
+  const item = document.getElementById(`ticker-${symbol}`);
+  if (!item) return;
+  const priceEl = item.querySelector(".price");
+  const up = price >= prev;
+  priceEl.textContent = Number(price).toFixed(2);
+  priceEl.className = "price num " + (up ? "up-color" : "down-color");
+
+  const min = Math.min(...hist), max = Math.max(...hist), range = (max - min) || 1;
+  const pts = hist.map((p, i) => {
+    const x = (i / (hist.length - 1 || 1)) * 44;
+    const y = 18 - ((p - min) / range) * 16;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(" ");
+  const poly = item.querySelector("polyline");
+  poly.setAttribute("points", pts);
+  poly.setAttribute("stroke", up ? "var(--up)" : "var(--down)");
+}
+
+function switchSymbol(code){
+  activeSymbol = code;
+  document.querySelectorAll(".ticker-item").forEach(el => el.classList.remove("active"));
+  document.getElementById(`ticker-${code}`).classList.add("active");
+  document.getElementById("symbolSelect").value = code;
+  loadChart(code, activeTF);
+}
+
+/* ================= CHART ================= */
+function initChart(){
+  chart = LightweightCharts.createChart(document.getElementById("chartContainer"), {
+    layout: { background: { color: "#0A0E14" }, textColor: "#6B7684", fontFamily: "IBM Plex Mono, monospace" },
+    grid: { vertLines: { color: "#1E2530" }, horzLines: { color: "#1E2530" } },
+    rightPriceScale: { borderColor: "#1E2530" },
+    timeScale: { borderColor: "#1E2530", timeVisible: true },
+  });
+  candleSeries = chart.addCandlestickSeries({
+    upColor: "#26D07C", downColor: "#FF5C5C", borderVisible: false,
+    wickUpColor: "#26D07C", wickDownColor: "#FF5C5C",
+  });
+  new ResizeObserver(entries => {
+    const { width, height } = entries[0].contentRect;
+    chart.resize(width, height);
+  }).observe(document.getElementById("chartContainer"));
+}
+
+let ohlcSubscribed = null;
+async function loadChart(symbol, tf){
+  const res = await send({ ticks_history: symbol, adjust_start_time: 1, count: 200, end: "latest", style: "candles", granularity: tf });
+  if (res.candles) {
+    candleSeries.setData(res.candles.map(c => ({ time: c.epoch, open: +c.open, high: +c.high, low: +c.low, close: +c.close })));
+  }
+  if (ohlcSubscribed) send({ forget: ohlcSubscribed });
+  const sub = await send({ ticks_history: symbol, style: "candles", granularity: tf, subscribe: 1, count: 1, end: "latest" });
+  ohlcSubscribed = sub.subscription ? sub.subscription.id : null;
+}
+
+document.getElementById("symbolSelect").onchange = (e) => switchSymbol(e.target.value);
+document.getElementById("tfSelect").onchange = (e) => { activeTF = +e.target.value; loadChart(activeSymbol, activeTF); };
+
+/* ================= TABS ================= */
+document.querySelectorAll(".tab").forEach(tab => {
+  tab.onclick = () => {
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    tab.classList.add("active");
+    document.getElementById("panel-riseFall").style.display = tab.dataset.tab === "riseFall" ? "block" : "none";
+    document.getElementById("panel-multipliers").style.display = tab.dataset.tab === "multipliers" ? "block" : "none";
+  };
+});
+document.querySelectorAll(".bottom-tab").forEach(tab => {
+  tab.onclick = () => {
+    document.querySelectorAll(".bottom-tab").forEach(t => t.classList.remove("active"));
+    tab.classList.add("active");
+    document.getElementById("openTable").style.display = tab.dataset.btab === "open" ? "table" : "none";
+    document.getElementById("closedTable").style.display = tab.dataset.btab === "closed" ? "table" : "none";
+  };
+});
+
+/* ================= TRADING ================= */
+function enableTradeButtons(){
+  ["rf-rise","rf-fall","mult-up","mult-down"].forEach(id => document.getElementById(id).disabled = false);
+}
+
+async function placeRiseFall(direction){
+  const unit = document.getElementById("rf-unit").value;
+  const duration = +document.getElementById("rf-duration").value;
+  const stake = +document.getElementById("rf-stake").value;
+  const res = await send({
+    buy: 1,
+    price: stake,
+    parameters: {
+      amount: stake, basis: "stake", contract_type: direction, currency: currentCurrency,
+      duration, duration_unit: unit, symbol: activeSymbol
+    }
+  });
+  if (res.error) alert(res.error.message);
+}
+
+async function placeMultiplier(direction){
+  const multiplier = +document.getElementById("mult-value").value;
+  const stake = +document.getElementById("mult-stake").value;
+  const res = await send({
+    buy: 1,
+    price: stake,
+    parameters: {
+      amount: stake, basis: "stake", contract_type: direction, currency: currentCurrency,
+      multiplier, symbol: activeSymbol
+    }
+  });
+  if (res.error) alert(res.error.message);
+}
+
+document.getElementById("rf-rise").onclick = () => placeRiseFall("CALL");
+document.getElementById("rf-fall").onclick = () => placeRiseFall("PUT");
+document.getElementById("mult-up").onclick = () => placeMultiplier("MULTUP");
+document.getElementById("mult-down").onclick = () => placeMultiplier("MULTDOWN");
+
+async function closeContract(contractId){
+  await send({ sell: contractId, price: 0 });
+}
+
+function renderOpenTable(){
+  const openBody = document.getElementById("openTableBody");
+  const closedBody = document.getElementById("closedTableBody");
+  const openRows = Object.values(openContracts).filter(c => c.status === "open");
+  const closedRows = Object.values(openContracts).filter(c => c.status === "closed");
+
+  openBody.innerHTML = openRows.length ? "" : `<tr class="empty-row"><td colspan="6">No open positions yet.</td></tr>`;
+  openRows.forEach(c => {
+    const tr = document.createElement("tr");
+    const pnlClass = c.profit >= 0 ? "pnl-pos" : "pnl-neg";
+    tr.innerHTML = `<td>${c.contract_id}</td><td>${c.symbol}</td><td>${Number(c.stake).toFixed(2)}</td>
+      <td class="${pnlClass}">${Number(c.profit).toFixed(2)}</td><td>Open</td>
+      <td><button class="close-btn" data-id="${c.contract_id}">Close</button></td>`;
+    tr.querySelector(".close-btn").onclick = () => closeContract(c.contract_id);
+    openBody.appendChild(tr);
+  });
+
+  closedBody.innerHTML = closedRows.length ? "" : `<tr class="empty-row"><td colspan="5">No closed trades yet.</td></tr>`;
+  closedRows.forEach(c => {
+    const tr = document.createElement("tr");
+    const pnlClass = c.profit >= 0 ? "pnl-pos" : "pnl-neg";
+    tr.innerHTML = `<td>${c.contract_id}</td><td>${c.symbol}</td><td>${Number(c.stake).toFixed(2)}</td>
+      <td class="${pnlClass}">${Number(c.profit).toFixed(2)}</td><td>—</td>`;
+    closedBody.appendChild(tr);
+  });
+}
+
+/* ================= INIT ================= */
+initTickerStrip();
+initChart();
+</script>
+</body>
+</html>
