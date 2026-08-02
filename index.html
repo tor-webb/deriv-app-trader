@@ -258,9 +258,10 @@ const APP_ID = "340jQNXrItGcDvwd5kjEU";
 const REDIRECT_URL = "https://deriv-app-trader.vercel.app/";
 const AFFILIATE_TOKEN = "FADPM2SRT75C";
 
-// New Deriv OAuth 2.0 / PKCE + REST endpoints
+// Deriv OAuth 2.0 / PKCE endpoint (authorization code + token exchange)
 const AUTH_URL = "https://auth.deriv.com/oauth2/auth";
-const API_BASE = "https://api.derivws.com/trading/v1/options";
+// Deriv's real, documented trading API is WebSocket-only — no separate REST/OTP layer
+const WS_BASE = "wss://ws.derivws.com/websockets/v3";
 
 const SYMBOLS = [
   { code:"R_10",    name:"Volatility 10 Index" },
@@ -352,28 +353,55 @@ async function exchangeCodeForToken(code){
   }
 }
 
+// Opens the real Deriv WebSocket and authorizes with the access token.
+// Resolves with the "authorize" response, which includes account_list.
+function openAuthorizedSocket(){
+  return new Promise((resolve, reject) => {
+    const ws = new WebSocket(`${WS_BASE}?app_id=${APP_ID}`);
+    ws.onopen = () => {
+      const id = reqId++;
+      pending[id] = (data) => {
+        if (data.error) reject(new Error(data.error.message));
+        else resolve({ socket: ws, authData: data.authorize });
+      };
+      ws.send(JSON.stringify({ authorize: accessToken, req_id: id }));
+    };
+    ws.onerror = () => reject(new Error("Could not reach the trading server."));
+    ws.onmessage = (evt) => {
+      const data = JSON.parse(evt.data);
+      if (data.req_id && pending[data.req_id]) {
+        pending[data.req_id](data);
+        delete pending[data.req_id];
+      }
+    };
+  });
+}
+
 async function showAccountPicker(){
   const statusEl = document.getElementById("gateStatus");
   document.getElementById("loginBtn").style.display = "none";
   statusEl.textContent = "Loading your accounts...";
   try {
-    const res = await fetch(`${API_BASE}/accounts`, {
-      headers: { "Authorization": `Bearer ${accessToken}`, "Deriv-App-ID": APP_ID },
-    });
-    const data = await res.json();
-    const accounts = data.accounts || data.data || (Array.isArray(data) ? data : []);
+    const { socket: ws, authData } = await openAuthorizedSocket();
+    const accounts = authData.account_list || [];
     if (!accounts.length) {
       statusEl.textContent = "No accounts found on this token.";
+      ws.close();
       return;
     }
     statusEl.textContent = "";
+    socket = ws; // keep this authorized socket open — reuse it once an account is picked
+    socket.onclose = () => document.getElementById("connDot").classList.remove("live");
+    socket.onerror = () => document.getElementById("connDot").classList.remove("live");
+    socket.onmessage = (evt) => handleMessage(JSON.parse(evt.data));
+
     const wrap = document.getElementById("acctPickerWrap");
     const picker = document.createElement("div");
     picker.className = "acct-picker";
     accounts.forEach(a => {
-      const id = a.account_id || a.id || a.loginid;
+      const id = a.loginid;
       const currency = a.currency || "USD";
-      const isDemo = a.is_virtual || a.type === "demo" || a.account_type === "demo";
+      const isDemo = a.is_virtual === 1 || a.account_type === "virtual";
       const opt = document.createElement("div");
       opt.className = "acct-opt";
       opt.textContent = `${id}  ·  ${currency.toUpperCase()}${isDemo ? "  ·  Demo" : ""}`;
@@ -422,31 +450,20 @@ async function startTerminal(accountId, currency){
   document.getElementById("rf-cur").textContent = currentCurrency;
   document.getElementById("mult-cur").textContent = currentCurrency;
 
-  // Get a one-time-password-embedded WebSocket URL for this account
-  const otpRes = await fetch(`${API_BASE}/accounts/${accountId}/otp`, {
-    method: "POST",
-    headers: { "Authorization": `Bearer ${accessToken}`, "Deriv-App-ID": APP_ID },
-  });
-  const otpData = await otpRes.json();
-  const wsUrl = otpData.websocket_url || otpData.ws_url || otpData.url;
-  if (!wsUrl) {
-    console.error("OTP response:", otpData);
-    alert("Could not open a trading connection. Check the browser console for details.");
+  // If the picked account isn't the one already authorized on this socket
+  // (i.e. the user has multiple linked accounts), switch to it first.
+  const switchRes = await send({ authorize: accessToken, loginid: accountId });
+  if (switchRes.error) {
+    alert("Could not switch to that account: " + switchRes.error.message);
     return;
   }
 
-  socket = new WebSocket(wsUrl);
-  socket.onopen = async () => {
-    document.getElementById("connDot").classList.add("live");
-    await send({ balance: 1, subscribe: 1 });
-    await send({ portfolio: 1 });
-    subscribeAllTicks();
-    loadChart(activeSymbol, activeTF);
-    enableTradeButtons();
-  };
-  socket.onclose = () => document.getElementById("connDot").classList.remove("live");
-  socket.onerror = () => document.getElementById("connDot").classList.remove("live");
-  socket.onmessage = (evt) => handleMessage(JSON.parse(evt.data));
+  document.getElementById("connDot").classList.add("live");
+  await send({ balance: 1, subscribe: 1 });
+  await send({ portfolio: 1 });
+  subscribeAllTicks();
+  loadChart(activeSymbol, activeTF);
+  enableTradeButtons();
 }
 
 function handleMessage(data){
