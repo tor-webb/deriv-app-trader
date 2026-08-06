@@ -1360,15 +1360,35 @@ async function placeMultiplier(direction){
 }
 
 async function placeDigit(contractType, symbol, ticks, stake, barrier){
-  const parameters = {
+  // This gateway's buy schema rejects "symbol" inside parameters entirely (confirmed by
+  // "Properties not allowed: symbol" validation error). So we use the two-step flow:
+  // 1) request a proposal (quote) — symbol belongs here
+  // 2) buy using only the returned proposal_id + price — no symbol/parameters at all
+  const proposalReq = {
+    proposal: 1,
     amount: stake, basis: "stake", contract_type: contractType, currency: currentCurrency,
     duration: ticks, duration_unit: "t", symbol
   };
-  if (barrier !== undefined && barrier !== null && barrier !== "") parameters.barrier = String(barrier);
-  const res = await send({ buy: 1, price: stake, parameters });
+  if (barrier !== undefined && barrier !== null && barrier !== "") proposalReq.barrier = String(barrier);
+
+  const proposalRes = await send(proposalReq);
+  if (proposalRes.error) {
+    console.error("Proposal error — full response:", JSON.stringify(proposalRes.error, null, 2));
+    console.error("Request sent:", JSON.stringify(proposalReq, null, 2));
+    alert(proposalRes.error.message + (proposalRes.error.details ? "\n\nDetails: " + JSON.stringify(proposalRes.error.details) : ""));
+    return;
+  }
+  const proposalId = proposalRes.proposal && proposalRes.proposal.id;
+  if (!proposalId) {
+    console.error("No proposal id in response:", JSON.stringify(proposalRes, null, 2));
+    alert("Could not get a price quote for this trade. Check the console for details.");
+    return;
+  }
+
+  const res = await send({ buy: proposalId, price: stake });
   if (res.error) {
     console.error("Digit trade error — full response:", JSON.stringify(res.error, null, 2));
-    console.error("Request sent:", JSON.stringify({ buy: 1, price: stake, parameters }, null, 2));
+    console.error("Request sent:", JSON.stringify({ buy: proposalId, price: stake }, null, 2));
     alert(res.error.message + (res.error.details ? "\n\nDetails: " + JSON.stringify(res.error.details) : ""));
     return;
   }
