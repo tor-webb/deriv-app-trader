@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pulse — Synthetic Indices Trading</title>
+<title>Quantum Markets — Synthetic Indices Trading</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
@@ -12,7 +12,9 @@
     --bg:#0A0E14;
     --panel:#10151D;
     --panel-2:#141B25;
+    --panel-3:#171F2B;
     --border:#1E2530;
+    --border-soft:#171E28;
     --text:#E8ECF1;
     --muted:#6B7684;
     --accent:#00D9C0;
@@ -20,44 +22,54 @@
     --up:#26D07C;
     --down:#FF5C5C;
     --warn:#FFB020;
+    --shadow: 0 8px 24px rgba(0,0,0,.35);
+    --shadow-sm: 0 2px 8px rgba(0,0,0,.25);
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;height:100%;}
   ::selection{background:var(--accent-dim);color:var(--accent);}
+  ::-webkit-scrollbar{width:8px;height:8px;}
+  ::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+  ::-webkit-scrollbar-track{background:transparent;}
 
   .num{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;}
   .brand{font-family:'Space Grotesk',sans-serif;font-weight:700;letter-spacing:-0.01em;}
+  a{color:var(--accent);}
 
-  /* ---------- Top bar ---------- */
+  /* ---------- App shell ---------- */
+  #terminal{display:none;height:100vh;}
+  .app-shell{display:grid;grid-template-columns:220px 1fr;height:100%;}
+
+  /* ---------- Sidebar ---------- */
+  .sidebar{
+    background:var(--panel);border-right:1px solid var(--border);
+    display:flex;flex-direction:column;padding:18px 12px;gap:4px;
+  }
+  .sidebar .logo{display:flex;align-items:center;gap:9px;font-size:1.1rem;padding:6px 10px 22px;}
+  .sidebar .logo .dot{width:9px;height:9px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent);animation:pulse 2s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+  .navitem{
+    display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;
+    color:var(--muted);font-size:.85rem;font-weight:500;cursor:pointer;
+    transition:background .15s, color .15s;
+  }
+  .navitem svg{width:16px;height:16px;flex-shrink:0;}
+  .navitem:hover{background:var(--panel-2);color:var(--text);}
+  .navitem.active{background:var(--accent-dim);color:var(--accent);}
+  .sidebar .spacer{flex:1;}
+  .sidebar .foot{padding:10px;font-size:.68rem;color:var(--muted);border-top:1px solid var(--border);margin-top:8px;}
+
+  /* ---------- Main column ---------- */
+  .main{display:flex;flex-direction:column;min-width:0;height:100%;}
   header{
-    display:flex;align-items:center;gap:20px;
-    padding:0 20px;height:56px;
+    display:flex;align-items:center;gap:16px;
+    padding:0 22px;height:60px;flex-shrink:0;
     border-bottom:1px solid var(--border);
     background:var(--panel);
   }
-  .logo{display:flex;align-items:center;gap:9px;font-size:1.15rem;}
-  .logo .dot{width:9px;height:9px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent);animation:pulse 2s ease-in-out infinite;}
-  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
-
-  .ticker-strip{
-    flex:1;display:flex;gap:0;overflow-x:auto;height:100%;
-    -ms-overflow-style:none;scrollbar-width:none;
-  }
-  .ticker-strip::-webkit-scrollbar{display:none;}
-  .ticker-item{
-    display:flex;align-items:center;gap:8px;padding:0 16px;
-    border-right:1px solid var(--border);cursor:pointer;white-space:nowrap;
-    transition:background .15s;
-  }
-  .ticker-item:hover{background:var(--panel-2);}
-  .ticker-item.active{background:var(--accent-dim);}
-  .ticker-item .sym{font-size:.72rem;color:var(--muted);font-family:'IBM Plex Mono',monospace;}
-  .ticker-item .price{font-size:.85rem;font-weight:600;}
-  .ticker-item svg{width:44px;height:20px;display:block;}
-  .up-color{color:var(--up);}
-  .down-color{color:var(--down);}
-
-  .account-box{display:flex;align-items:center;gap:14px;padding-left:14px;border-left:1px solid var(--border);height:100%;}
+  header .page-title{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:1.05rem;}
+  header .spacer{flex:1;}
+  .account-box{display:flex;align-items:center;gap:14px;}
   .status-dot{width:7px;height:7px;border-radius:50%;background:var(--muted);}
   .status-dot.live{background:var(--up);box-shadow:0 0 6px var(--up);}
   #balanceDisplay{font-size:.95rem;font-weight:600;}
@@ -65,202 +77,805 @@
   .btn{
     background:var(--accent);color:#00201C;border:none;padding:9px 16px;
     border-radius:6px;font-weight:600;font-size:.85rem;cursor:pointer;
-    font-family:'Inter',sans-serif;transition:opacity .15s;text-decoration:none;
+    font-family:'Inter',sans-serif;transition:opacity .15s, transform .1s;text-decoration:none;
     display:inline-block;
   }
   .btn:hover{opacity:.85;}
+  .btn:active{transform:scale(.97);}
   .btn:disabled{opacity:.4;cursor:not-allowed;}
   .btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text);}
+  .btn-danger{background:var(--down);color:#1A0303;}
 
-  /* ---------- Layout ---------- */
-  .layout{display:grid;grid-template-columns:1fr 340px;grid-template-rows:1fr auto;height:calc(100vh - 56px);}
-  .chart-area{grid-column:1;grid-row:1;position:relative;border-right:1px solid var(--border);}
-  .chart-toolbar{
-    display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid var(--border);
+  .page-content{flex:1;overflow-y:auto;padding:22px;}
+  .page{display:none;}
+  .page.active{display:block;animation:fadein .25s ease;}
+  @keyframes fadein{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
+
+  .section-title{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:1rem;margin:0 0 14px;display:flex;align-items:center;gap:8px;}
+  .section-title .hint{font-family:'Inter',sans-serif;font-weight:400;font-size:.78rem;color:var(--muted);}
+
+  /* ---------- Cards ---------- */
+  .card{
+    background:var(--panel-2);border:1px solid var(--border);border-radius:12px;
+    padding:16px 18px;box-shadow:var(--shadow-sm);
   }
+  .stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px;margin-bottom:26px;}
+  .stat-card{
+    background:var(--panel-2);border:1px solid var(--border);border-radius:12px;
+    padding:16px 18px;box-shadow:var(--shadow-sm);position:relative;overflow:hidden;
+    transition:transform .15s, border-color .15s;
+  }
+  .stat-card:hover{transform:translateY(-2px);border-color:#2A3442;}
+  .stat-card .label{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;}
+  .stat-card .value{font-family:'IBM Plex Mono',monospace;font-size:1.5rem;font-weight:600;font-variant-numeric:tabular-nums;}
+  .stat-card .value.up{color:var(--up);}
+  .stat-card .value.down{color:var(--down);}
+  .stat-card .sub{font-size:.72rem;color:var(--muted);margin-top:6px;}
+  .stat-card .accent-bar{position:absolute;top:0;left:0;width:3px;height:100%;background:var(--accent);opacity:.6;}
+
+  .grid-2{display:grid;grid-template-columns:1.4fr 1fr;gap:16px;align-items:start;}
+  @media(max-width:980px){.grid-2{grid-template-columns:1fr;}}
+
+  /* ---------- Ticker strip (dashboard + trade) ---------- */
+  .ticker-strip{display:flex;gap:0;overflow-x:auto;border:1px solid var(--border);border-radius:10px;background:var(--panel-2);margin-bottom:20px;}
+  .ticker-strip::-webkit-scrollbar{display:none;}
+  .ticker-item{
+    display:flex;align-items:center;gap:8px;padding:12px 16px;
+    border-right:1px solid var(--border);cursor:pointer;white-space:nowrap;
+    transition:background .15s;
+  }
+  .ticker-item:hover{background:var(--panel-3);}
+  .ticker-item.active{background:var(--accent-dim);}
+  .ticker-item .sym{font-size:.72rem;color:var(--muted);font-family:'IBM Plex Mono',monospace;}
+  .ticker-item .price{font-size:.85rem;font-weight:600;}
+  .ticker-item svg{width:44px;height:20px;display:block;}
+  .up-color{color:var(--up);}
+  .down-color{color:var(--down);}
+
+  /* ---------- Trade page layout ---------- */
+  .trade-layout{display:grid;grid-template-columns:1fr 340px;gap:16px;}
+  @media(max-width:980px){.trade-layout{grid-template-columns:1fr;}}
+  .chart-card{background:var(--panel-2);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:var(--shadow-sm);}
+  .chart-toolbar{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border);}
   .chart-toolbar select{
-    background:var(--panel-2);color:var(--text);border:1px solid var(--border);
+    background:var(--panel-3);color:var(--text);border:1px solid var(--border);
     border-radius:5px;padding:6px 10px;font-family:'IBM Plex Mono',monospace;font-size:.8rem;
   }
-  #chartContainer{width:100%;height:calc(100% - 45px);}
+  #chartContainer{width:100%;height:420px;}
 
-  .ticket{grid-column:2;grid-row:1;background:var(--panel);display:flex;flex-direction:column;overflow-y:auto;}
+  .ticket{background:var(--panel-2);border:1px solid var(--border);border-radius:12px;display:flex;flex-direction:column;overflow:hidden;box-shadow:var(--shadow-sm);}
   .tabs{display:flex;border-bottom:1px solid var(--border);}
-  .tab{flex:1;text-align:center;padding:13px 0;font-size:.85rem;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;}
+  .tab{flex:1;text-align:center;padding:13px 0;font-size:.85rem;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:color .15s;}
   .tab.active{color:var(--accent);border-bottom-color:var(--accent);}
   .ticket-body{padding:18px;}
   .field{margin-bottom:16px;}
   .field label{display:block;font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;}
   .field input, .field select{
-    width:100%;background:var(--panel-2);border:1px solid var(--border);color:var(--text);
+    width:100%;background:var(--panel-3);border:1px solid var(--border);color:var(--text);
     padding:10px;border-radius:6px;font-family:'IBM Plex Mono',monospace;font-size:.9rem;
   }
+  .field input:focus, .field select:focus{outline:2px solid var(--accent);outline-offset:1px;}
   .duo{display:flex;gap:10px;}
   .duo .field{flex:1;}
   .payout-preview{
-    background:var(--panel-2);border:1px solid var(--border);border-radius:8px;
+    background:var(--panel-3);border:1px solid var(--border);border-radius:8px;
     padding:12px;margin-bottom:16px;font-size:.8rem;color:var(--muted);
   }
-  .payout-preview .val{color:var(--text);font-family:'IBM Plex Mono',monospace;font-weight:600;}
   .trade-buttons{display:flex;gap:10px;}
   .trade-buttons button{
     flex:1;padding:14px 0;border-radius:8px;border:none;font-weight:700;font-size:.95rem;cursor:pointer;
-    font-family:'Space Grotesk',sans-serif;
+    font-family:'Space Grotesk',sans-serif;transition:filter .15s, transform .1s;
   }
+  .trade-buttons button:active{transform:scale(.97);}
   .btn-up{background:var(--up);color:#04140B;}
   .btn-down{background:var(--down);color:#1A0303;}
   .btn-up:hover, .btn-down:hover{filter:brightness(1.08);}
   .btn-up:disabled, .btn-down:disabled{opacity:.4;cursor:not-allowed;}
 
-  /* ---------- Bottom panel ---------- */
-  .bottom-panel{grid-column:1/3;grid-row:2;border-top:1px solid var(--border);background:var(--panel);max-height:220px;overflow-y:auto;}
-  .bottom-tabs{display:flex;gap:2px;padding:8px 16px 0;border-bottom:1px solid var(--border);}
-  .bottom-tab{padding:8px 14px;font-size:.78rem;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;}
-  .bottom-tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+  .stop-all-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--panel-2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:16px;}
+  .stop-all-bar .txt{font-size:.78rem;color:var(--muted);}
+  .stop-all-bar .txt b{color:var(--text);}
+
+  /* ---------- Tables ---------- */
+  .table-card{background:var(--panel-2);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:var(--shadow-sm);}
   table{width:100%;border-collapse:collapse;font-size:.8rem;}
-  th{text-align:left;color:var(--muted);font-weight:500;padding:8px 16px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--panel);}
-  td{padding:8px 16px;border-bottom:1px solid var(--border);font-family:'IBM Plex Mono',monospace;}
-  .empty-row td{color:var(--muted);text-align:center;padding:20px;font-family:'Inter',sans-serif;}
+  th{text-align:left;color:var(--muted);font-weight:500;padding:10px 16px;border-bottom:1px solid var(--border);background:var(--panel-3);}
+  td{padding:10px 16px;border-bottom:1px solid var(--border-soft);font-family:'IBM Plex Mono',monospace;}
+  tr:last-child td{border-bottom:none;}
+  .empty-row td{color:var(--muted);text-align:center;padding:26px;font-family:'Inter',sans-serif;}
   .pnl-pos{color:var(--up);}
   .pnl-neg{color:var(--down);}
+  .badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:.68rem;font-weight:600;font-family:'Inter',sans-serif;}
+  .badge-open{background:var(--accent-dim);color:var(--accent);}
+  .badge-win{background:#0F2E1D;color:var(--up);}
+  .badge-loss{background:#301111;color:var(--down);}
+  .badge-stopped{background:#332B0C;color:var(--warn);}
   .close-btn{background:transparent;border:1px solid var(--border);color:var(--muted);padding:4px 10px;border-radius:5px;font-size:.72rem;cursor:pointer;}
   .close-btn:hover{border-color:var(--down);color:var(--down);}
 
-  /* ---------- Gate (login) screen ---------- */
-  #gate{
-    position:fixed;inset:0;background:var(--bg);z-index:50;
-    display:flex;align-items:center;justify-content:center;flex-direction:column;gap:22px;text-align:center;padding:20px;
+  .subtabs{display:flex;gap:2px;padding:4px;background:var(--panel-3);border-radius:9px;width:fit-content;margin-bottom:16px;}
+  .subtab{padding:7px 16px;font-size:.78rem;color:var(--muted);cursor:pointer;border-radius:7px;}
+  .subtab.active{background:var(--accent);color:#00201C;font-weight:600;}
+
+  /* ---------- Digits page ---------- */
+  .digit-bars{display:flex;align-items:flex-end;gap:6px;height:120px;padding:14px 6px 0;}
+  .digit-bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end;}
+  .digit-bar{width:100%;background:linear-gradient(180deg, var(--accent), var(--accent-dim));border-radius:4px 4px 0 0;min-height:2px;transition:height .3s ease;}
+  .digit-bar-label{font-size:.68rem;color:var(--muted);font-family:'IBM Plex Mono',monospace;}
+  .last-digit-display{font-family:'IBM Plex Mono',monospace;font-size:2.4rem;font-weight:700;text-align:center;padding:10px 0;}
+
+  /* ---------- Analytics ---------- */
+  .equity-chart{width:100%;height:220px;}
+
+  /* ---------- Account overview ---------- */
+  .kv-list{display:flex;flex-direction:column;gap:0;}
+  .kv-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border-soft);font-size:.84rem;}
+  .kv-row:last-child{border-bottom:none;}
+  .kv-row .k{color:var(--muted);}
+  .kv-row .v{font-family:'IBM Plex Mono',monospace;}
+
+  /* ---------- Toasts ---------- */
+  #toastStack{position:fixed;bottom:20px;right:20px;display:flex;flex-direction:column;gap:8px;z-index:80;}
+  .toast{
+    background:var(--panel-2);border:1px solid var(--border);border-left:3px solid var(--accent);
+    border-radius:8px;padding:12px 16px;box-shadow:var(--shadow);min-width:240px;
+    font-size:.82rem;animation:toastin .2s ease;
   }
-  #gate .mark{font-size:2.2rem;}
-  #gate p{color:var(--muted);max-width:380px;font-size:.9rem;line-height:1.5;}
+  .toast.win{border-left-color:var(--up);}
+  .toast.loss{border-left-color:var(--down);}
+  .toast .t-title{font-weight:600;margin-bottom:2px;}
+  .toast .t-sub{color:var(--muted);font-size:.75rem;}
+  @keyframes toastin{from{opacity:0;transform:translateX(20px);}to{opacity:1;transform:translateX(0);}}
+
+  /* ---------- Gate / Landing page ---------- */
+  #gate{background:var(--bg);min-height:100vh;overflow-y:auto;}
   #gate.hidden{display:none;}
-  .acct-picker{display:flex;flex-direction:column;gap:8px;width:280px;}
+  .acct-picker{display:flex;flex-direction:column;gap:8px;width:100%;}
   .acct-opt{
     background:var(--panel);border:1px solid var(--border);padding:12px 14px;border-radius:8px;
     cursor:pointer;text-align:left;font-family:'IBM Plex Mono',monospace;font-size:.85rem;
+    transition:border-color .15s;
   }
   .acct-opt:hover{border-color:var(--accent);}
+
+  .lp-container{max-width:1180px;margin:0 auto;padding:0 24px;}
+  .lp-nav{
+    position:sticky;top:0;z-index:10;display:flex;align-items:center;gap:20px;
+    padding:16px 24px;background:rgba(10,14,20,.85);backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--border);
+  }
+  .lp-nav .lp-logo{display:flex;align-items:center;gap:9px;font-size:1.1rem;}
+  .lp-nav .lp-logo .dot{width:9px;height:9px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent);animation:pulse 2s ease-in-out infinite;}
+  .lp-nav .lp-links{display:flex;gap:22px;flex:1;justify-content:center;}
+  .lp-nav .lp-links a{color:var(--muted);text-decoration:none;font-size:.85rem;transition:color .15s;}
+  .lp-nav .lp-links a:hover{color:var(--text);}
+
+  .lp-hero{
+    display:grid;grid-template-columns:1fr 420px;gap:40px;align-items:center;
+    padding:70px 0 90px;
+  }
+  @media(max-width:960px){.lp-hero{grid-template-columns:1fr;padding:40px 0 60px;}}
+  .lp-eyebrow{
+    display:inline-flex;align-items:center;gap:8px;color:var(--accent);font-size:.75rem;
+    letter-spacing:.08em;text-transform:uppercase;border:1px solid var(--accent-dim);
+    background:var(--accent-dim);padding:6px 14px;border-radius:20px;margin-bottom:20px;
+  }
+  .lp-hero h1{
+    font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:3.1rem;line-height:1.08;
+    letter-spacing:-0.02em;margin:0 0 18px;
+    background:linear-gradient(180deg, var(--text) 40%, var(--muted));
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  }
+  @media(max-width:640px){.lp-hero h1{font-size:2.1rem;}}
+  .lp-hero .sub{color:var(--muted);font-size:1.02rem;line-height:1.6;max-width:520px;margin-bottom:30px;}
+  .lp-cta-row{display:flex;gap:14px;flex-wrap:wrap;}
+  .btn-lg{padding:14px 26px;font-size:.95rem;border-radius:8px;}
+
+  /* Hero auth card — functional sign-in lives here */
+  .lp-auth-card{
+    background:linear-gradient(180deg, var(--panel-2), var(--panel));
+    border:1px solid var(--border);border-radius:16px;padding:26px;
+    box-shadow:var(--shadow);position:relative;overflow:hidden;
+  }
+  .lp-auth-card::before{
+    content:"";position:absolute;top:-60px;right:-60px;width:180px;height:180px;
+    background:radial-gradient(circle, var(--accent-dim), transparent 70%);opacity:.7;
+  }
+  .lp-auth-card .mark{font-size:1.3rem;margin-bottom:6px;position:relative;}
+  .lp-auth-card p{color:var(--muted);font-size:.82rem;line-height:1.5;margin:0 0 18px;position:relative;}
+  .lp-mini-chart{height:70px;margin-bottom:18px;position:relative;}
+  .lp-float-stats{display:flex;gap:10px;margin-top:18px;position:relative;flex-wrap:wrap;}
+  .lp-float-stat{
+    background:var(--panel-3);border:1px solid var(--border-soft);border-radius:8px;
+    padding:8px 12px;font-size:.72rem;color:var(--muted);
+  }
+  .lp-float-stat b{display:block;color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:.95rem;}
+
+  .lp-section{padding:64px 0;border-top:1px solid var(--border-soft);}
+  .lp-section h2{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:1.7rem;margin:0 0 8px;letter-spacing:-.01em;}
+  .lp-section .lp-lede{color:var(--muted);font-size:.92rem;max-width:560px;margin:0 0 36px;line-height:1.55;}
+
+  .lp-grid{display:grid;gap:16px;}
+  .lp-grid.cols-4{grid-template-columns:repeat(4,1fr);}
+  .lp-grid.cols-3{grid-template-columns:repeat(3,1fr);}
+  @media(max-width:900px){.lp-grid.cols-4{grid-template-columns:repeat(2,1fr);}.lp-grid.cols-3{grid-template-columns:repeat(2,1fr);}}
+  @media(max-width:600px){.lp-grid.cols-4, .lp-grid.cols-3{grid-template-columns:1fr;}}
+
+  .lp-card{
+    background:var(--panel-2);border:1px solid var(--border);border-radius:14px;padding:22px;
+    transition:transform .18s, border-color .18s, box-shadow .18s;
+  }
+  .lp-card:hover{transform:translateY(-3px);border-color:#2A3442;box-shadow:var(--shadow-sm);}
+  .lp-card .ic{
+    width:38px;height:38px;border-radius:10px;background:var(--accent-dim);color:var(--accent);
+    display:flex;align-items:center;justify-content:center;margin-bottom:14px;font-size:1.05rem;
+  }
+  .lp-card h3{font-family:'Space Grotesk',sans-serif;font-size:.98rem;margin:0 0 6px;font-weight:600;}
+  .lp-card p{color:var(--muted);font-size:.82rem;line-height:1.5;margin:0;}
+
+  .lp-preview-mock{
+    background:var(--panel-2);border:1px solid var(--border);border-radius:14px;
+    padding:16px;position:relative;overflow:hidden;
+  }
+  .lp-preview-mock .tag{
+    position:absolute;top:12px;right:12px;font-size:.62rem;color:var(--muted);
+    border:1px solid var(--border);padding:2px 8px;border-radius:20px;background:var(--panel);
+  }
+  .lp-preview-mock .bars{display:flex;align-items:flex-end;gap:5px;height:110px;padding-top:16px;}
+  .lp-preview-mock .bars div{flex:1;border-radius:2px;}
+
+  .lp-testi{background:var(--panel-2);border:1px solid var(--border);border-radius:14px;padding:22px;}
+  .lp-testi .stars{color:var(--warn);letter-spacing:2px;margin-bottom:10px;font-size:.85rem;}
+  .lp-testi p{font-size:.88rem;color:var(--text);line-height:1.55;margin:0 0 14px;}
+  .lp-testi .who{color:var(--muted);font-size:.78rem;}
+  .lp-testi-note{color:var(--muted);font-size:.72rem;margin-top:16px;}
+
+  .lp-steps{display:flex;gap:0;counter-reset:step;}
+  @media(max-width:800px){.lp-steps{flex-direction:column;}}
+  .lp-step{flex:1;text-align:center;padding:0 18px;position:relative;}
+  .lp-step .stepnum{
+    width:40px;height:40px;border-radius:50%;background:var(--accent-dim);color:var(--accent);
+    display:flex;align-items:center;justify-content:center;font-weight:700;font-family:'Space Grotesk',sans-serif;
+    margin:0 auto 14px;border:1px solid var(--accent);
+  }
+  .lp-step h3{font-size:.92rem;margin:0 0 6px;font-family:'Space Grotesk',sans-serif;}
+  .lp-step p{color:var(--muted);font-size:.8rem;margin:0;}
+  .lp-step-arrow{color:var(--border);font-size:1.4rem;align-self:center;}
+  @media(max-width:800px){.lp-step-arrow{transform:rotate(90deg);margin:4px 0;}}
+
+  .lp-cta-band{
+    background:linear-gradient(135deg, var(--accent-dim), var(--panel-2));
+    border:1px solid var(--accent-dim);border-radius:20px;padding:60px 40px;text-align:center;
+  }
+  .lp-cta-band h2{font-family:'Space Grotesk',sans-serif;font-size:1.8rem;margin:0 0 12px;}
+  .lp-cta-band p{color:var(--muted);margin:0 0 26px;}
+
+  .lp-footer{border-top:1px solid var(--border);padding:44px 0 24px;color:var(--muted);}
+  .lp-footer-grid{display:grid;grid-template-columns:2fr repeat(4,1fr);gap:24px;margin-bottom:34px;}
+  @media(max-width:800px){.lp-footer-grid{grid-template-columns:repeat(2,1fr);}}
+  .lp-footer h4{color:var(--text);font-size:.78rem;text-transform:uppercase;letter-spacing:.06em;margin:0 0 12px;}
+  .lp-footer ul{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:8px;}
+  .lp-footer a{color:var(--muted);text-decoration:none;font-size:.82rem;}
+  .lp-footer a:hover{color:var(--text);}
+  .lp-footer-bottom{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;padding-top:20px;border-top:1px solid var(--border-soft);font-size:.75rem;}
+  .lp-social{display:flex;gap:10px;}
+  .lp-social a{
+    width:32px;height:32px;border-radius:50%;border:1px solid var(--border);
+    display:flex;align-items:center;justify-content:center;color:var(--muted);
+  }
+  .lp-risk{font-size:.72rem;color:var(--muted);line-height:1.6;max-width:900px;margin-top:14px;}
 </style>
 </head>
 <body>
 
-<!-- Login / account gate -->
+<!-- Landing page / login gate -->
 <div id="gate">
-  <div class="mark brand"><span style="color:var(--accent)">●</span> PULSE</div>
-  <p>A live trading terminal for Deriv's synthetic volatility indices. Connect your Deriv account to start trading.</p>
-  <button id="loginBtn" class="btn">Log in with Deriv</button>
-  <div id="acctPickerWrap"></div>
-  <div id="gateStatus" class="num" style="color:var(--muted);font-size:.78rem;"></div>
+
+  <nav class="lp-nav">
+    <div class="lp-logo brand"><span class="dot"></span>QUANTUM&nbsp;MARKETS</div>
+    <div class="lp-links">
+      <a href="#lp-features">Features</a>
+      <a href="#lp-preview">Platform</a>
+      <a href="#lp-why">Why Us</a>
+      <a href="#lp-how">How It Works</a>
+    </div>
+    <button class="btn btn-ghost" onclick="loginWithDeriv()">Sign In</button>
+  </nav>
+
+  <div class="lp-container">
+    <!-- ================= HERO ================= -->
+    <section class="lp-hero">
+      <div>
+        <div class="lp-eyebrow">● Live on Deriv synthetic markets</div>
+        <h1>Trade Smarter.<br>Trade Faster.</h1>
+        <p class="sub">Experience professional trading with Quantum Markets. Access advanced tools, real-time market insights, and a secure third-party integration with Deriv — built for traders who value speed, precision, and reliability.</p>
+        <div class="lp-cta-row">
+          <button class="btn btn-lg" onclick="loginWithDeriv()">Start Trading</button>
+          <a href="#lp-features" class="btn btn-ghost btn-lg">Learn More</a>
+        </div>
+      </div>
+
+      <!-- Functional sign-in card — same elements/IDs as before, just restyled -->
+      <div class="lp-auth-card">
+        <div class="mark brand">Connect your account</div>
+        <p>Sign in securely through Deriv's OAuth to load your real balance, positions, and trade history.</p>
+        <svg class="lp-mini-chart" viewBox="0 0 300 70" preserveAspectRatio="none">
+          <polyline fill="none" stroke="var(--accent)" stroke-width="2"
+            points="0,50 20,45 40,52 60,30 80,38 100,20 120,28 140,15 160,25 180,18 200,10 220,22 240,14 260,8 280,18 300,6"/>
+        </svg>
+        <button id="loginBtn" class="btn" style="width:100%;">Log in with Deriv</button>
+        <div id="acctPickerWrap" style="margin-top:12px;"></div>
+        <div id="gateStatus" class="num" style="color:var(--muted);font-size:.78rem;margin-top:10px;"></div>
+        <div class="lp-float-stats">
+          <div class="lp-float-stat"><b id="statMarketsCount">6</b>Synthetic markets</div>
+          <div class="lp-float-stat"><b>2</b>Trade families</div>
+          <div class="lp-float-stat"><b>OAuth</b>Secure sign-in</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= TRUST ================= -->
+    <section class="lp-section">
+      <h2>Built on a foundation of trust</h2>
+      <p class="lp-lede">Every session runs through Deriv's own authenticated infrastructure — Quantum Markets never touches your credentials directly.</p>
+      <div class="lp-grid cols-4">
+        <div class="lp-card"><div class="ic">✓</div><h3>Secure Third-Party Integration</h3><p>Authentication happens through Deriv's official OAuth flow, end to end.</p></div>
+        <div class="lp-card"><div class="ic">◈</div><h3>Professional Trading Experience</h3><p>An interface designed around clarity, not clutter.</p></div>
+        <div class="lp-card"><div class="ic">▤</div><h3>Advanced Trading Dashboard</h3><p>Live statistics computed directly from your account activity.</p></div>
+        <div class="lp-card"><div class="ic">◎</div><h3>Real-Time Analytics</h3><p>Balances, positions, and outcomes update as they happen.</p></div>
+        <div class="lp-card"><div class="ic">▦</div><h3>Responsive on All Devices</h3><p>A consistent experience from desktop to mobile.</p></div>
+        <div class="lp-card"><div class="ic">⚡</div><h3>Fast Execution</h3><p>Orders route straight to Deriv's trading engine over WebSocket.</p></div>
+        <div class="lp-card"><div class="ic">⛊</div><h3>Modern Risk Management</h3><p>Stop-all controls and live position tracking, always in view.</p></div>
+      </div>
+    </section>
+
+    <!-- ================= FEATURES ================= -->
+    <section class="lp-section" id="lp-features">
+      <h2>Everything you need, in one dashboard</h2>
+      <p class="lp-lede">A complete trading workspace — not a stripped-down widget.</p>
+      <div class="lp-grid cols-4">
+        <div class="lp-card"><div class="ic">▤</div><h3>Professional Dashboard</h3><p>Account overview and trading statistics in one view.</p></div>
+        <div class="lp-card"><div class="ic">#</div><h3>Digits Trading</h3><p>Even/Odd, Over/Under, and Matches/Differs contracts.</p></div>
+        <div class="lp-card"><div class="ic">∿</div><h3>Synthetic Markets</h3><p>Volatility 10 through 100, including the 1-second index.</p></div>
+        <div class="lp-card"><div class="ic">◔</div><h3>Portfolio Management</h3><p>Track balance, currency, and open exposure at a glance.</p></div>
+        <div class="lp-card"><div class="ic">⌗</div><h3>Trade History</h3><p>A full record of closed and manually stopped trades.</p></div>
+        <div class="lp-card"><div class="ic">◆</div><h3>Real-Time Statistics</h3><p>Win rate, P/L, and volume computed from real outcomes.</p></div>
+        <div class="lp-card"><div class="ic">📈</div><h3>Live Market Charts</h3><p>Candlestick charts streamed directly from Deriv.</p></div>
+        <div class="lp-card"><div class="ic">◈</div><h3>Performance Analytics</h3><p>A running equity curve built from your closed trades.</p></div>
+        <div class="lp-card"><div class="ic">🔒</div><h3>Secure Account Management</h3><p>Session-based auth with a one-click disconnect.</p></div>
+        <div class="lp-card"><div class="ic">⎘</div><h3>Multi-Account Support</h3><p>Pick between any accounts linked to your Deriv login.</p></div>
+      </div>
+    </section>
+
+    <!-- ================= MARKET PREVIEW ================= -->
+    <section class="lp-section" id="lp-preview">
+      <h2>A look inside the platform</h2>
+      <p class="lp-lede">Visual previews of the dashboard — your real data populates these once you sign in.</p>
+      <div class="lp-grid cols-3">
+        <div class="lp-preview-mock"><span class="tag">Preview</span>
+          <h3 style="font-size:.85rem;margin:0 0 4px;">Candlestick chart</h3>
+          <div class="bars">
+            <div style="height:40%;background:var(--up);"></div><div style="height:65%;background:var(--down);"></div>
+            <div style="height:30%;background:var(--up);"></div><div style="height:80%;background:var(--up);"></div>
+            <div style="height:50%;background:var(--down);"></div><div style="height:70%;background:var(--up);"></div>
+            <div style="height:35%;background:var(--down);"></div><div style="height:60%;background:var(--up);"></div>
+          </div>
+        </div>
+        <div class="lp-preview-mock"><span class="tag">Preview</span>
+          <h3 style="font-size:.85rem;margin:0 0 10px;">Open trades</h3>
+          <div class="kv-list"><div class="kv-row"><span class="k">Contract · Symbol</span><span class="v">Stake / P&L</span></div>
+          <div class="kv-row"><span class="k">— awaiting sign-in —</span><span class="v">—</span></div></div>
+        </div>
+        <div class="lp-preview-mock"><span class="tag">Preview</span>
+          <h3 style="font-size:.85rem;margin:0 0 10px;">Digits distribution</h3>
+          <div class="bars">
+            <div style="height:20%;background:var(--accent);"></div><div style="height:55%;background:var(--accent);"></div>
+            <div style="height:40%;background:var(--accent);"></div><div style="height:70%;background:var(--accent);"></div>
+            <div style="height:35%;background:var(--accent);"></div><div style="height:60%;background:var(--accent);"></div>
+            <div style="height:45%;background:var(--accent);"></div><div style="height:25%;background:var(--accent);"></div>
+            <div style="height:50%;background:var(--accent);"></div><div style="height:30%;background:var(--accent);"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= WHY QUANTUM MARKETS ================= -->
+    <section class="lp-section" id="lp-why">
+      <h2>Why Quantum Markets</h2>
+      <div class="lp-grid cols-4">
+        <div class="lp-card"><div class="ic">⚡</div><h3>Speed</h3><p>Direct WebSocket execution with no unnecessary hops.</p></div>
+        <div class="lp-card"><div class="ic">◎</div><h3>Precision</h3><p>Statistics computed exactly from what your account reports.</p></div>
+        <div class="lp-card"><div class="ic">▣</div><h3>Reliability</h3><p>Built directly on Deriv's authenticated trading infrastructure.</p></div>
+        <div class="lp-card"><div class="ic">🔒</div><h3>Security</h3><p>OAuth 2.0 with PKCE — your credentials never touch this app.</p></div>
+        <div class="lp-card"><div class="ic">◈</div><h3>Real-Time Performance</h3><p>Live balance and position updates as trades resolve.</p></div>
+        <div class="lp-card"><div class="ic">▤</div><h3>Professional UI</h3><p>An institutional layout without the clutter.</p></div>
+        <div class="lp-card"><div class="ic">▦</div><h3>Responsive Experience</h3><p>Consistent on desktop, tablet, and mobile.</p></div>
+        <div class="lp-card"><div class="ic">⎘</div><h3>Third-Party Integration</h3><p>Deriv handles execution; Quantum Markets handles clarity.</p></div>
+      </div>
+    </section>
+
+    <!-- ================= TESTIMONIALS ================= -->
+    <section class="lp-section">
+      <h2>What traders say</h2>
+      <div class="lp-grid cols-3">
+        <div class="lp-testi"><div class="stars">★★★★★</div><p>"Professional interface with a clean trading experience."</p><div class="who">— Alex M.</div></div>
+        <div class="lp-testi"><div class="stars">★★★★★</div><p>"Everything feels responsive and premium."</p><div class="who">— Sarah K.</div></div>
+        <div class="lp-testi"><div class="stars">★★★★★</div><p>"A polished platform that's easy to navigate."</p><div class="who">— Daniel O.</div></div>
+      </div>
+      <p class="lp-testi-note">Illustrative example quotes shown for design purposes — not verified customer reviews.</p>
+    </section>
+
+    <!-- ================= STATS ================= -->
+    <section class="lp-section">
+      <div class="lp-grid cols-4">
+        <div class="lp-card" style="text-align:center;"><div class="value num" style="font-size:1.6rem;font-family:'IBM Plex Mono',monospace;">6</div><p>Synthetic Indices Available</p></div>
+        <div class="lp-card" style="text-align:center;"><div class="value num" style="font-size:1.6rem;font-family:'IBM Plex Mono',monospace;">8</div><p>Trade Types (Rise/Fall, Multipliers, Digits)</p></div>
+        <div class="lp-card" style="text-align:center;"><div class="value num" style="font-size:1.6rem;font-family:'IBM Plex Mono',monospace;">Live</div><p>Real-Time Analytics</p></div>
+        <div class="lp-card" style="text-align:center;"><div class="value num" style="font-size:1.6rem;font-family:'IBM Plex Mono',monospace;">OAuth</div><p>Secure Third-Party Integration</p></div>
+      </div>
+    </section>
+
+    <!-- ================= HOW IT WORKS ================= -->
+    <section class="lp-section" id="lp-how">
+      <h2>How it works</h2>
+      <div class="lp-steps">
+        <div class="lp-step"><div class="stepnum">1</div><h3>Create your account</h3><p>Sign in securely through Deriv's own login.</p></div>
+        <div class="lp-step-arrow">→</div>
+        <div class="lp-step"><div class="stepnum">2</div><h3>Connect your access</h3><p>Grant trading access through Deriv's OAuth consent screen.</p></div>
+        <div class="lp-step-arrow">→</div>
+        <div class="lp-step"><div class="stepnum">3</div><h3>Start trading</h3><p>Use the professional dashboard to trade in real time.</p></div>
+      </div>
+    </section>
+
+    <!-- ================= CTA ================= -->
+    <section class="lp-section">
+      <div class="lp-cta-band">
+        <h2>Ready to elevate your trading experience?</h2>
+        <p>Connect your Deriv account and start trading in under a minute.</p>
+        <div class="lp-cta-row" style="justify-content:center;">
+          <button class="btn btn-lg" onclick="loginWithDeriv()">Start Trading</button>
+          <button class="btn btn-ghost btn-lg" onclick="loginWithDeriv()">Sign In</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ================= FOOTER ================= -->
+  <footer class="lp-footer">
+    <div class="lp-container">
+      <div class="lp-footer-grid">
+        <div>
+          <div class="lp-logo brand" style="margin-bottom:10px;"><span class="dot"></span>QUANTUM&nbsp;MARKETS</div>
+          <p style="font-size:.82rem;line-height:1.6;max-width:280px;">A premium trading interface built on secure third-party integration with Deriv.</p>
+        </div>
+        <div><h4>About</h4><ul><li><a href="#">About Us</a></li><li><a href="#lp-features">Features</a></li><li><a href="#lp-preview">Markets</a></li></ul></div>
+        <div><h4>Support</h4><ul><li><a href="#">Help Center</a></li><li><a href="#">Contact</a></li></ul></div>
+        <div><h4>Legal</h4><ul><li><a href="#">Privacy Policy</a></li><li><a href="#">Terms of Use</a></li></ul></div>
+        <div><h4>Risk</h4><ul><li><a href="#">Risk Disclosure</a></li></ul></div>
+      </div>
+      <div class="lp-risk">Quantum Markets provides a front-end interface for trading through a secure third-party integration with Deriv. Trading synthetic indices, digits, and multiplier contracts carries a high level of risk and may not be suitable for all traders. Quantum Markets is not a broker and does not hold client funds.</div>
+      <div class="lp-footer-bottom">
+        <div>© Quantum Markets</div>
+        <div class="lp-social">
+          <a href="#" aria-label="X">𝕏</a>
+          <a href="#" aria-label="LinkedIn">in</a>
+          <a href="#" aria-label="Telegram">✈</a>
+        </div>
+      </div>
+    </div>
+  </footer>
 </div>
 
 <!-- Main terminal (hidden until authorized) -->
-<div id="terminal" style="display:none;">
-  <header>
-    <div class="logo brand"><span class="dot"></span>PULSE</div>
-    <div class="ticker-strip" id="tickerStrip"></div>
-    <div class="account-box">
-      <span class="status-dot" id="connDot"></span>
-      <div id="balanceDisplay">— <span class="cur"></span></div>
-      <button class="btn btn-ghost" id="logoutBtn">Disconnect</button>
-    </div>
-  </header>
+<div id="terminal">
+  <div class="app-shell">
 
-  <div class="layout">
-    <div class="chart-area">
-      <div class="chart-toolbar">
-        <select id="symbolSelect"></select>
-        <select id="tfSelect">
-          <option value="60">1m</option>
-          <option value="120">2m</option>
-          <option value="300">5m</option>
-          <option value="900">15m</option>
-        </select>
-      </div>
-      <div id="chartContainer"></div>
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="logo brand"><span class="dot"></span>QUANTUM</div>
+      <div class="navitem active" data-page="dashboard">Dashboard</div>
+      <div class="navitem" data-page="trade">Trade</div>
+      <div class="navitem" data-page="digits">Digits Trading</div>
+      <div class="navitem" data-page="open">Open Trades</div>
+      <div class="navitem" data-page="history">History</div>
+      <div class="navitem" data-page="analytics">Analytics</div>
+      <div class="navitem" data-page="settings">Settings</div>
+      <div class="spacer"></div>
+      <div class="foot">Synced live with your Deriv account.</div>
     </div>
 
-    <div class="ticket">
-      <div class="tabs">
-        <div class="tab active" data-tab="riseFall">Rise / Fall</div>
-        <div class="tab" data-tab="multipliers">Multipliers</div>
-      </div>
+    <!-- Main column -->
+    <div class="main">
+      <header>
+        <div class="page-title" id="pageTitle">Dashboard</div>
+        <div class="spacer"></div>
+        <button class="btn btn-danger" id="stopAllBtn" style="margin-right:6px;">Stop All Trades</button>
+        <div class="account-box">
+          <span class="status-dot" id="connDot"></span>
+          <div id="balanceDisplay">— <span class="cur"></span></div>
+          <button class="btn btn-ghost" id="logoutBtn">Disconnect</button>
+        </div>
+      </header>
 
-      <!-- Rise/Fall panel -->
-      <div class="ticket-body" id="panel-riseFall">
-        <div class="duo">
-          <div class="field">
-            <label>Duration unit</label>
-            <select id="rf-unit">
-              <option value="t">Ticks</option>
-              <option value="m">Minutes</option>
-            </select>
+      <div class="page-content">
+
+        <!-- ================= DASHBOARD ================= -->
+        <div class="page active" id="page-dashboard">
+          <div class="section-title">Trading Statistics <span class="hint">Live, computed from your actual trades this session</span></div>
+          <div class="stat-grid" id="statGridMain"></div>
+
+          <div class="grid-2">
+            <div class="card">
+              <div class="section-title" style="margin-bottom:12px;">Account Overview</div>
+              <div class="kv-list" id="accountKv">
+                <div class="kv-row"><span class="k">Account ID</span><span class="v">—</span></div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="section-title" style="margin-bottom:12px;">Recent Trades</div>
+              <div id="dashRecentWrap">
+                <p style="color:var(--muted);font-size:.82rem;">No trades yet this session.</p>
+              </div>
+            </div>
           </div>
-          <div class="field">
-            <label>Duration</label>
-            <input type="number" id="rf-duration" value="5" min="1">
+        </div>
+
+        <!-- ================= TRADE ================= -->
+        <div class="page" id="page-trade">
+          <div class="ticker-strip" id="tickerStrip"></div>
+
+          <div class="trade-layout">
+            <div class="chart-card">
+              <div class="chart-toolbar">
+                <select id="symbolSelect"></select>
+                <select id="tfSelect">
+                  <option value="60">1m</option>
+                  <option value="120">2m</option>
+                  <option value="300">5m</option>
+                  <option value="900">15m</option>
+                </select>
+              </div>
+              <div id="chartContainer"></div>
+            </div>
+
+            <div class="ticket">
+              <div class="tabs">
+                <div class="tab active" data-tab="riseFall">Rise / Fall</div>
+                <div class="tab" data-tab="multipliers">Multipliers</div>
+              </div>
+
+              <div class="ticket-body" id="panel-riseFall">
+                <div class="duo">
+                  <div class="field">
+                    <label>Duration unit</label>
+                    <select id="rf-unit">
+                      <option value="t">Ticks</option>
+                      <option value="m">Minutes</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label>Duration</label>
+                    <input type="number" id="rf-duration" value="5" min="1">
+                  </div>
+                </div>
+                <div class="field">
+                  <label>Stake (<span id="rf-cur">USD</span>)</label>
+                  <input type="number" id="rf-stake" value="10" min="0.35" step="0.01">
+                </div>
+                <div class="payout-preview" id="rf-preview">Payout preview will appear here once connected.</div>
+                <div class="trade-buttons">
+                  <button class="btn-up" id="rf-rise" disabled>▲ Rise</button>
+                  <button class="btn-down" id="rf-fall" disabled>▼ Fall</button>
+                </div>
+              </div>
+
+              <div class="ticket-body" id="panel-multipliers" style="display:none;">
+                <div class="field">
+                  <label>Multiplier</label>
+                  <select id="mult-value">
+                    <option value="20">×20</option>
+                    <option value="50">×50</option>
+                    <option value="100">×100</option>
+                    <option value="150">×150</option>
+                    <option value="200">×200</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>Stake (<span id="mult-cur">USD</span>)</label>
+                  <input type="number" id="mult-stake" value="10" min="1" step="0.01">
+                </div>
+                <div class="payout-preview">Multipliers use leverage — losses can exceed the stake. Trade with care.</div>
+                <div class="trade-buttons">
+                  <button class="btn-up" id="mult-up" disabled>▲ Up</button>
+                  <button class="btn-down" id="mult-down" disabled>▼ Down</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-title" style="margin-top:20px;">Open Positions</div>
+          <div class="table-card">
+            <table id="openTableTrade">
+              <thead><tr><th>Contract</th><th>Symbol</th><th>Type</th><th>Stake</th><th>P/L</th><th>Status</th><th></th></tr></thead>
+              <tbody class="open-tbody"><tr class="empty-row"><td colspan="7">No open positions yet.</td></tr></tbody>
+            </table>
           </div>
         </div>
-        <div class="field">
-          <label>Stake (<span id="rf-cur">USD</span>)</label>
-          <input type="number" id="rf-stake" value="10" min="0.35" step="0.01">
-        </div>
-        <div class="payout-preview" id="rf-preview">Payout preview will appear here once connected.</div>
-        <div class="trade-buttons">
-          <button class="btn-up" id="rf-rise" disabled>▲ Rise</button>
-          <button class="btn-down" id="rf-fall" disabled>▼ Fall</button>
-        </div>
-      </div>
 
-      <!-- Multipliers panel -->
-      <div class="ticket-body" id="panel-multipliers" style="display:none;">
-        <div class="field">
-          <label>Multiplier</label>
-          <select id="mult-value">
-            <option value="20">×20</option>
-            <option value="50">×50</option>
-            <option value="100">×100</option>
-            <option value="150">×150</option>
-            <option value="200">×200</option>
-          </select>
-        </div>
-        <div class="field">
-          <label>Stake (<span id="mult-cur">USD</span>)</label>
-          <input type="number" id="mult-stake" value="10" min="1" step="0.01">
-        </div>
-        <div class="payout-preview">Multipliers use leverage — losses are limited to your stake plus any deficit protection isn't applied here. Trade with care.</div>
-        <div class="trade-buttons">
-          <button class="btn-up" id="mult-up" disabled>▲ Up</button>
-          <button class="btn-down" id="mult-down" disabled>▼ Down</button>
-        </div>
-      </div>
-    </div>
+        <!-- ================= DIGITS TRADING ================= -->
+        <div class="page" id="page-digits">
+          <div class="section-title">Digits Trading <span class="hint">Even/Odd, Over/Under, and Matches/Differs contracts</span></div>
+          <div class="stat-grid" id="statGridDigits"></div>
 
-    <div class="bottom-panel">
-      <div class="bottom-tabs">
-        <div class="bottom-tab active" data-btab="open">Open Positions</div>
-        <div class="bottom-tab" data-btab="closed">History</div>
+          <div class="grid-2">
+            <div class="card">
+              <div class="section-title" style="margin-bottom:6px;">Last Digit Distribution — <span id="digitsSymbolLabel">R_100</span></div>
+              <div class="last-digit-display" id="lastDigitDisplay">—</div>
+              <div class="digit-bars" id="digitBars"></div>
+            </div>
+
+            <div class="ticket">
+              <div class="tabs">
+                <div class="tab active" data-dtab="evenodd">Even / Odd</div>
+                <div class="tab" data-dtab="overunder">Over / Under</div>
+                <div class="tab" data-dtab="matchdiffer">Match / Differ</div>
+              </div>
+
+              <div class="ticket-body" id="dpanel-evenodd">
+                <div class="field">
+                  <label>Symbol</label>
+                  <select id="digit-symbol"></select>
+                </div>
+                <div class="field">
+                  <label>Ticks</label>
+                  <input type="number" id="digit-ticks-eo" value="5" min="1" max="10">
+                </div>
+                <div class="field">
+                  <label>Stake (<span class="digit-cur">USD</span>)</label>
+                  <input type="number" id="digit-stake-eo" value="10" min="0.35" step="0.01">
+                </div>
+                <div class="trade-buttons">
+                  <button class="btn-up digit-btn" data-type="DIGITEVEN" disabled>Even</button>
+                  <button class="btn-down digit-btn" data-type="DIGITODD" disabled>Odd</button>
+                </div>
+              </div>
+
+              <div class="ticket-body" id="dpanel-overunder" style="display:none;">
+                <div class="field">
+                  <label>Symbol</label>
+                  <select id="digit-symbol-ou"></select>
+                </div>
+                <div class="duo">
+                  <div class="field">
+                    <label>Ticks</label>
+                    <input type="number" id="digit-ticks-ou" value="5" min="1" max="10">
+                  </div>
+                  <div class="field">
+                    <label>Barrier digit (0–9)</label>
+                    <input type="number" id="digit-barrier-ou" value="5" min="0" max="9">
+                  </div>
+                </div>
+                <div class="field">
+                  <label>Stake (<span class="digit-cur">USD</span>)</label>
+                  <input type="number" id="digit-stake-ou" value="10" min="0.35" step="0.01">
+                </div>
+                <div class="trade-buttons">
+                  <button class="btn-up digit-btn" data-type="DIGITOVER" disabled>Over</button>
+                  <button class="btn-down digit-btn" data-type="DIGITUNDER" disabled>Under</button>
+                </div>
+              </div>
+
+              <div class="ticket-body" id="dpanel-matchdiffer" style="display:none;">
+                <div class="field">
+                  <label>Symbol</label>
+                  <select id="digit-symbol-md"></select>
+                </div>
+                <div class="duo">
+                  <div class="field">
+                    <label>Ticks</label>
+                    <input type="number" id="digit-ticks-md" value="5" min="1" max="10">
+                  </div>
+                  <div class="field">
+                    <label>Target digit (0–9)</label>
+                    <input type="number" id="digit-barrier-md" value="5" min="0" max="9">
+                  </div>
+                </div>
+                <div class="field">
+                  <label>Stake (<span class="digit-cur">USD</span>)</label>
+                  <input type="number" id="digit-stake-md" value="10" min="0.35" step="0.01">
+                </div>
+                <div class="trade-buttons">
+                  <button class="btn-up digit-btn" data-type="DIGITMATCH" disabled>Matches</button>
+                  <button class="btn-down digit-btn" data-type="DIGITDIFF" disabled>Differs</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-title" style="margin-top:20px;">Digits Trade History</div>
+          <div class="table-card">
+            <table id="digitsHistoryTable">
+              <thead><tr><th>Contract</th><th>Type</th><th>Symbol</th><th>Stake</th><th>P/L</th><th>Result</th></tr></thead>
+              <tbody class="digits-history-tbody"><tr class="empty-row"><td colspan="6">No digits trades yet.</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ================= OPEN TRADES ================= -->
+        <div class="page" id="page-open">
+          <div class="section-title">Open Trades</div>
+          <div class="table-card">
+            <table id="openTableFull">
+              <thead><tr><th>Contract</th><th>Symbol</th><th>Type</th><th>Stake</th><th>P/L</th><th>Opened</th><th></th></tr></thead>
+              <tbody class="open-tbody-full"><tr class="empty-row"><td colspan="7">No open positions yet.</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ================= HISTORY ================= -->
+        <div class="page" id="page-history">
+          <div class="section-title">Trade History</div>
+          <div class="subtabs">
+            <div class="subtab active" data-htab="closed">Closed</div>
+            <div class="subtab" data-htab="stopped">Stopped</div>
+          </div>
+          <div class="table-card">
+            <table id="closedTable">
+              <thead><tr><th>Contract</th><th>Symbol</th><th>Type</th><th>Stake</th><th>P/L</th><th>Result</th><th>Closed</th></tr></thead>
+              <tbody class="closed-tbody"><tr class="empty-row"><td colspan="7">No closed trades yet.</td></tr></tbody>
+            </table>
+            <table id="stoppedTable" style="display:none;">
+              <thead><tr><th>Contract</th><th>Symbol</th><th>Type</th><th>Stake</th><th>P/L</th><th>Closed</th></tr></thead>
+              <tbody class="stopped-tbody"><tr class="empty-row"><td colspan="6">No manually stopped trades yet.</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ================= ANALYTICS ================= -->
+        <div class="page" id="page-analytics">
+          <div class="section-title">Analytics <span class="hint">Cumulative profit/loss across closed trades this session</span></div>
+          <div class="card">
+            <svg id="equityChart" class="equity-chart" viewBox="0 0 600 220" preserveAspectRatio="none"></svg>
+          </div>
+        </div>
+
+        <!-- ================= SETTINGS ================= -->
+        <div class="page" id="page-settings">
+          <div class="section-title">Account Settings</div>
+          <div class="grid-2">
+            <div class="card">
+              <div class="section-title" style="margin-bottom:12px;">Connection</div>
+              <div class="kv-list" id="settingsKv">
+                <div class="kv-row"><span class="k">Account ID</span><span class="v">—</span></div>
+              </div>
+              <div style="margin-top:16px;">
+                <button class="btn btn-ghost" id="logoutBtn2">Disconnect account</button>
+              </div>
+            </div>
+            <div class="card">
+              <div class="section-title" style="margin-bottom:12px;">Security & Preferences</div>
+              <p style="color:var(--muted);font-size:.82rem;line-height:1.5;">
+                Security settings (password, two-factor authentication) and full account preferences are
+                managed directly in your <a href="https://home.deriv.com/account/personal-details" target="_blank" rel="noopener">Deriv account dashboard</a>,
+                not through this app.
+              </p>
+            </div>
+          </div>
+        </div>
+
       </div>
-      <table id="openTable">
-        <thead><tr><th>Contract</th><th>Symbol</th><th>Stake</th><th>P/L</th><th>Status</th><th></th></tr></thead>
-        <tbody id="openTableBody"><tr class="empty-row"><td colspan="6">No open positions yet.</td></tr></tbody>
-      </table>
-      <table id="closedTable" style="display:none;">
-        <thead><tr><th>Contract</th><th>Symbol</th><th>Stake</th><th>P/L</th><th>Closed</th></tr></thead>
-        <tbody id="closedTableBody"><tr class="empty-row"><td colspan="5">No closed trades yet.</td></tr></tbody>
-      </table>
     </div>
   </div>
 </div>
 
+<div id="toastStack"></div>
+
 <script>
-/* ================= CONFIG ================= */
+/* ================= CONFIG (unchanged — do not modify) ================= */
 const APP_ID = "340jQNXrItGcDvwd5kjEU";
 const REDIRECT_URL = "https://deriv-app-trader.vercel.app/";
 const AFFILIATE_TOKEN = "FADPM2SRT75C";
-
-// Deriv OAuth 2.0 / PKCE endpoint (authorization code + token exchange)
 const AUTH_URL = "https://auth.deriv.com/oauth2/auth";
-// Deriv's Options API — REST for account setup, WebSocket (via OTP) for real-time trading
 const API_BASE = "https://api.derivws.com/trading/v1/options";
 
 const SYMBOLS = [
@@ -276,15 +891,19 @@ const SYMBOLS = [
 let socket = null;
 let accessToken = null;
 let currentCurrency = "USD";
+let currentBalance = null;
 let activeSymbol = "R_10";
+let activeDigitSymbol = "R_100";
 let activeTF = 60;
 let chart, candleSeries;
 let reqId = 1;
-const pending = {}; // req_id -> resolver
-const tickHistory = {}; // symbol -> [prices]
-const openContracts = {}; // contract_id -> row data
+const pending = {};
+const tickHistory = {};
+const digitHistory = {}; // symbol -> [0-9,...]
+const openContracts = {}; // contract_id -> row data (single source of truth for all stats)
+let accountInfo = { account_id: null, currency: null, account_type: null };
 
-/* ================= PKCE HELPERS ================= */
+/* ================= PKCE HELPERS (unchanged) ================= */
 function randomString(len){
   const arr = new Uint8Array(len);
   crypto.getRandomValues(arr);
@@ -300,9 +919,8 @@ async function pkceChallenge(verifier){
   return base64url(digest);
 }
 
-/* ================= LOGIN GATE ================= */
-document.getElementById("loginBtn").onclick = async (e) => {
-  e.preventDefault();
+/* ================= LOGIN GATE (logic unchanged — now callable from any CTA button) ================= */
+async function loginWithDeriv(){
   const verifier = randomString(64);
   const challenge = await pkceChallenge(verifier);
   const state = randomString(24);
@@ -313,16 +931,15 @@ document.getElementById("loginBtn").onclick = async (e) => {
     response_type: "code",
     client_id: APP_ID,
     redirect_uri: REDIRECT_URL,
-    scope: "trade account_manage", // matches the "Trade" + "Account management" scopes enabled on your app
+    scope: "trade account_manage",
     state,
     code_challenge: challenge,
     code_challenge_method: "S256",
   });
-  if (AFFILIATE_TOKEN) {
-    params.set("t", AFFILIATE_TOKEN);
-  }
+  if (AFFILIATE_TOKEN) params.set("t", AFFILIATE_TOKEN);
   window.location.href = `${AUTH_URL}?${params.toString()}`;
-};
+}
+document.getElementById("loginBtn").onclick = (e) => { e.preventDefault(); loginWithDeriv(); };
 
 async function exchangeCodeForToken(code){
   const verifier = sessionStorage.getItem("pkce_verifier");
@@ -332,11 +949,7 @@ async function exchangeCodeForToken(code){
     const res = await fetch("/api/token", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        code,
-        code_verifier: verifier,
-        redirect_uri: REDIRECT_URL,
-      }),
+      body: JSON.stringify({ code, code_verifier: verifier, redirect_uri: REDIRECT_URL }),
     });
     const data = await res.json();
     if (!res.ok || !data.access_token) {
@@ -344,8 +957,8 @@ async function exchangeCodeForToken(code){
       return;
     }
     sessionStorage.setItem("access_token", data.access_token);
-    sessionStorage.removeItem("pkce_verifier"); // clear it now that it's been used
-    window.history.replaceState({}, "", REDIRECT_URL); // clean the ?code= from the URL
+    sessionStorage.removeItem("pkce_verifier");
+    window.history.replaceState({}, "", REDIRECT_URL);
     accessToken = data.access_token;
     await showAccountPicker();
   } catch (err) {
@@ -367,7 +980,6 @@ async function showAccountPicker(){
       statusEl.textContent = "Could not load accounts: " + msg;
       return;
     }
-    // Real response shape: { "data": [ { account_id, balance, currency, account_type, ... } ] }
     const accounts = Array.isArray(body.data) ? body.data : (body.data ? [body.data] : []);
     if (!accounts.length) {
       statusEl.textContent = "No accounts found on this token.";
@@ -384,7 +996,7 @@ async function showAccountPicker(){
       const opt = document.createElement("div");
       opt.className = "acct-opt";
       opt.textContent = `${id}  ·  ${currency.toUpperCase()}${isDemo ? "  ·  Demo" : ""}`;
-      opt.onclick = () => startTerminal(id, currency);
+      opt.onclick = () => startTerminal(id, currency, a.account_type);
       picker.appendChild(opt);
     });
     wrap.appendChild(picker);
@@ -393,7 +1005,6 @@ async function showAccountPicker(){
   }
 }
 
-// On page load: resume a session, or handle the OAuth redirect back from Deriv
 (function initAuth(){
   const params = new URLSearchParams(window.location.search);
   const code = params.get("code");
@@ -406,13 +1017,15 @@ async function showAccountPicker(){
   }
 })();
 
-document.getElementById("logoutBtn").onclick = () => {
+function doLogout(){
   sessionStorage.removeItem("access_token");
   sessionStorage.removeItem("pkce_verifier");
   window.location.href = REDIRECT_URL;
-};
+}
+document.getElementById("logoutBtn").onclick = doLogout;
+document.getElementById("logoutBtn2").onclick = doLogout;
 
-/* ================= WEBSOCKET CORE ================= */
+/* ================= WEBSOCKET CORE (unchanged) ================= */
 function send(msg){
   return new Promise((resolve) => {
     const id = reqId++;
@@ -422,14 +1035,16 @@ function send(msg){
   });
 }
 
-async function startTerminal(accountId, currency){
+async function startTerminal(accountId, currency, accountType){
   currentCurrency = (currency || "USD").toUpperCase();
+  accountInfo = { account_id: accountId, currency: currentCurrency, account_type: accountType || "—" };
   document.getElementById("gate").classList.add("hidden");
   document.getElementById("terminal").style.display = "block";
   document.getElementById("rf-cur").textContent = currentCurrency;
   document.getElementById("mult-cur").textContent = currentCurrency;
+  document.querySelectorAll(".digit-cur").forEach(el => el.textContent = currentCurrency);
+  renderAccountInfo();
 
-  // Get a one-time-password-embedded WebSocket URL for this account
   const otpRes = await fetch(`${API_BASE}/accounts/${accountId}/otp`, {
     method: "POST",
     headers: { "Authorization": `Bearer ${accessToken}`, "Deriv-App-ID": APP_ID },
@@ -441,7 +1056,6 @@ async function startTerminal(accountId, currency){
     alert("Could not open a trading connection: " + msg);
     return;
   }
-  // Real response shape: { "data": { "url": "wss://.../ws/demo?otp=..." } }
   const wsUrl = otpBody.data && otpBody.data.url;
   if (!wsUrl) {
     console.error("OTP response:", otpBody);
@@ -470,8 +1084,10 @@ function handleMessage(data){
   }
 
   if (data.msg_type === "balance" && data.balance) {
+    currentBalance = Number(data.balance.balance);
     document.getElementById("balanceDisplay").innerHTML =
-      `${Number(data.balance.balance).toFixed(2)} <span class="cur">${data.balance.currency}</span>`;
+      `${currentBalance.toFixed(2)} <span class="cur">${data.balance.currency}</span>`;
+    renderAll();
   }
 
   if (data.msg_type === "tick" && data.tick) {
@@ -487,36 +1103,75 @@ function handleMessage(data){
 
   if (data.msg_type === "buy" && data.buy) {
     const c = data.buy;
-    openContracts[c.contract_id] = { contract_id: c.contract_id, symbol: activeSymbol, stake: c.buy_price, profit: 0, status: "open" };
-    renderOpenTable();
+    const existing = openContracts[c.contract_id] || {};
+    openContracts[c.contract_id] = {
+      ...existing,
+      contract_id: c.contract_id,
+      symbol: existing.symbol || activeSymbol,
+      stake: c.buy_price,
+      profit: 0,
+      status: "open",
+      manuallyStopped: false,
+      date_start: Math.floor(Date.now()/1000),
+    };
+    renderAll();
     send({ proposal_open_contract: 1, contract_id: c.contract_id, subscribe: 1 });
   }
 
   if (data.msg_type === "proposal_open_contract" && data.proposal_open_contract) {
     const c = data.proposal_open_contract;
+    const wasOpen = openContracts[c.contract_id] && openContracts[c.contract_id].status === "open";
     if (!openContracts[c.contract_id]) openContracts[c.contract_id] = {};
     Object.assign(openContracts[c.contract_id], {
       contract_id: c.contract_id,
       symbol: c.underlying,
       stake: c.buy_price,
       profit: c.profit,
-      status: c.is_sold ? "closed" : "open"
+      status: c.is_sold ? "closed" : "open",
+      date_start: c.date_start || openContracts[c.contract_id].date_start,
     });
-    renderOpenTable();
+    if (wasOpen && c.is_sold) {
+      notifyTradeClosed(openContracts[c.contract_id]);
+    }
+    renderAll();
   }
 
   if (data.error) {
     console.error("Deriv API error:", data.error.message);
-    document.getElementById("gateStatus").textContent = data.error.message;
+    const gs = document.getElementById("gateStatus");
+    if (gs) gs.textContent = data.error.message;
   }
 }
+
+/* ================= NAVIGATION ================= */
+const PAGE_TITLES = {
+  dashboard:"Dashboard", trade:"Trade", digits:"Digits Trading",
+  open:"Open Trades", history:"Trade History", analytics:"Analytics", settings:"Settings"
+};
+document.querySelectorAll(".navitem").forEach(item => {
+  item.onclick = () => {
+    document.querySelectorAll(".navitem").forEach(n => n.classList.remove("active"));
+    item.classList.add("active");
+    const p = item.dataset.page;
+    document.querySelectorAll(".page").forEach(pg => pg.classList.remove("active"));
+    document.getElementById(`page-${p}`).classList.add("active");
+    document.getElementById("pageTitle").textContent = PAGE_TITLES[p] || p;
+    if (p === "analytics") renderEquityChart();
+  };
+});
 
 /* ================= TICKER STRIP ================= */
 function initTickerStrip(){
   const strip = document.getElementById("tickerStrip");
   const symSelect = document.getElementById("symbolSelect");
+  const digitSelects = [
+    document.getElementById("digit-symbol"),
+    document.getElementById("digit-symbol-ou"),
+    document.getElementById("digit-symbol-md"),
+  ];
   SYMBOLS.forEach(s => {
     tickHistory[s.code] = [];
+    digitHistory[s.code] = [];
     const item = document.createElement("div");
     item.className = "ticker-item" + (s.code === activeSymbol ? " active" : "");
     item.id = `ticker-${s.code}`;
@@ -527,8 +1182,22 @@ function initTickerStrip(){
     const opt = document.createElement("option");
     opt.value = s.code; opt.textContent = s.name;
     symSelect.appendChild(opt);
+
+    digitSelects.forEach(sel => {
+      const o = document.createElement("option");
+      o.value = s.code; o.textContent = s.name;
+      sel.appendChild(o);
+    });
   });
   symSelect.value = activeSymbol;
+  digitSelects.forEach(sel => sel.value = activeDigitSymbol);
+  digitSelects.forEach(sel => sel.onchange = (e) => {
+    activeDigitSymbol = e.target.value;
+    digitSelects.forEach(s2 => s2.value = activeDigitSymbol);
+    document.getElementById("digitsSymbolLabel").textContent = activeDigitSymbol;
+    renderDigitBars();
+  });
+  document.getElementById("digitsSymbolLabel").textContent = activeDigitSymbol;
 }
 
 function subscribeAllTicks(){
@@ -541,6 +1210,19 @@ function updateTicker(symbol, price){
   const prev = hist.length ? hist[hist.length - 1] : price;
   hist.push(price);
   if (hist.length > 30) hist.shift();
+
+  // Real last-digit tracking, straight from the streamed tick quote
+  const digits = digitHistory[symbol];
+  if (digits) {
+    const str = Number(price).toFixed(4); // Deriv quotes typically carry enough decimals
+    const lastDigit = +str[str.length - 1];
+    digits.push(lastDigit);
+    if (digits.length > 100) digits.shift();
+    if (symbol === activeDigitSymbol) {
+      document.getElementById("lastDigitDisplay").textContent = lastDigit;
+      renderDigitBars();
+    }
+  }
 
   const item = document.getElementById(`ticker-${symbol}`);
   if (!item) return;
@@ -560,6 +1242,25 @@ function updateTicker(symbol, price){
   poly.setAttribute("stroke", up ? "var(--up)" : "var(--down)");
 }
 
+function renderDigitBars(){
+  const wrap = document.getElementById("digitBars");
+  const hist = digitHistory[activeDigitSymbol] || [];
+  const counts = new Array(10).fill(0);
+  hist.forEach(d => counts[d]++);
+  const max = Math.max(...counts, 1);
+  wrap.innerHTML = "";
+  counts.forEach((c, d) => {
+    const pct = hist.length ? Math.round((c / hist.length) * 100) : 0;
+    const h = Math.round((c / max) * 100);
+    const col = document.createElement("div");
+    col.className = "digit-bar-wrap";
+    col.innerHTML = `<div style="font-size:.65rem;color:var(--muted);">${pct}%</div>
+      <div class="digit-bar" style="height:${h}%"></div>
+      <div class="digit-bar-label">${d}</div>`;
+    wrap.appendChild(col);
+  });
+}
+
 function switchSymbol(code){
   activeSymbol = code;
   document.querySelectorAll(".ticker-item").forEach(el => el.classList.remove("active"));
@@ -568,7 +1269,7 @@ function switchSymbol(code){
   loadChart(code, activeTF);
 }
 
-/* ================= CHART ================= */
+/* ================= CHART (unchanged) ================= */
 function initChart(){
   chart = LightweightCharts.createChart(document.getElementById("chartContainer"), {
     layout: { background: { color: "#0A0E14" }, textColor: "#6B7684", fontFamily: "IBM Plex Mono, monospace" },
@@ -600,27 +1301,37 @@ async function loadChart(symbol, tf){
 document.getElementById("symbolSelect").onchange = (e) => switchSymbol(e.target.value);
 document.getElementById("tfSelect").onchange = (e) => { activeTF = +e.target.value; loadChart(activeSymbol, activeTF); };
 
-/* ================= TABS ================= */
-document.querySelectorAll(".tab").forEach(tab => {
+/* ================= TICKET TABS ================= */
+document.querySelectorAll(".tab[data-tab]").forEach(tab => {
   tab.onclick = () => {
-    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    document.querySelectorAll(".tab[data-tab]").forEach(t => t.classList.remove("active"));
     tab.classList.add("active");
     document.getElementById("panel-riseFall").style.display = tab.dataset.tab === "riseFall" ? "block" : "none";
     document.getElementById("panel-multipliers").style.display = tab.dataset.tab === "multipliers" ? "block" : "none";
   };
 });
-document.querySelectorAll(".bottom-tab").forEach(tab => {
+document.querySelectorAll(".tab[data-dtab]").forEach(tab => {
   tab.onclick = () => {
-    document.querySelectorAll(".bottom-tab").forEach(t => t.classList.remove("active"));
+    document.querySelectorAll(".tab[data-dtab]").forEach(t => t.classList.remove("active"));
     tab.classList.add("active");
-    document.getElementById("openTable").style.display = tab.dataset.btab === "open" ? "table" : "none";
-    document.getElementById("closedTable").style.display = tab.dataset.btab === "closed" ? "table" : "none";
+    document.getElementById("dpanel-evenodd").style.display = tab.dataset.dtab === "evenodd" ? "block" : "none";
+    document.getElementById("dpanel-overunder").style.display = tab.dataset.dtab === "overunder" ? "block" : "none";
+    document.getElementById("dpanel-matchdiffer").style.display = tab.dataset.dtab === "matchdiffer" ? "block" : "none";
+  };
+});
+document.querySelectorAll(".subtab").forEach(tab => {
+  tab.onclick = () => {
+    document.querySelectorAll(".subtab").forEach(t => t.classList.remove("active"));
+    tab.classList.add("active");
+    document.getElementById("closedTable").style.display = tab.dataset.htab === "closed" ? "table" : "none";
+    document.getElementById("stoppedTable").style.display = tab.dataset.htab === "stopped" ? "table" : "none";
   };
 });
 
-/* ================= TRADING ================= */
+/* ================= TRADING (same buy/sell calls as before, extended for digits) ================= */
 function enableTradeButtons(){
   ["rf-rise","rf-fall","mult-up","mult-down"].forEach(id => document.getElementById(id).disabled = false);
+  document.querySelectorAll(".digit-btn").forEach(b => b.disabled = false);
 }
 
 async function placeRiseFall(direction){
@@ -628,28 +1339,35 @@ async function placeRiseFall(direction){
   const duration = +document.getElementById("rf-duration").value;
   const stake = +document.getElementById("rf-stake").value;
   const res = await send({
-    buy: 1,
-    price: stake,
-    parameters: {
-      amount: stake, basis: "stake", contract_type: direction, currency: currentCurrency,
-      duration, duration_unit: unit, symbol: activeSymbol
-    }
+    buy: 1, price: stake,
+    parameters: { amount: stake, basis: "stake", contract_type: direction, currency: currentCurrency,
+      duration, duration_unit: unit, symbol: activeSymbol }
   });
-  if (res.error) alert(res.error.message);
+  if (res.error) { alert(res.error.message); return; }
+  if (res.buy) openContracts[res.buy.contract_id] = { ...(openContracts[res.buy.contract_id]||{}), symbol: activeSymbol, contractType: direction, isDigit: false };
 }
 
 async function placeMultiplier(direction){
   const multiplier = +document.getElementById("mult-value").value;
   const stake = +document.getElementById("mult-stake").value;
   const res = await send({
-    buy: 1,
-    price: stake,
-    parameters: {
-      amount: stake, basis: "stake", contract_type: direction, currency: currentCurrency,
-      multiplier, symbol: activeSymbol
-    }
+    buy: 1, price: stake,
+    parameters: { amount: stake, basis: "stake", contract_type: direction, currency: currentCurrency,
+      multiplier, symbol: activeSymbol }
   });
-  if (res.error) alert(res.error.message);
+  if (res.error) { alert(res.error.message); return; }
+  if (res.buy) openContracts[res.buy.contract_id] = { ...(openContracts[res.buy.contract_id]||{}), symbol: activeSymbol, contractType: direction, isDigit: false };
+}
+
+async function placeDigit(contractType, symbol, ticks, stake, barrier){
+  const parameters = {
+    amount: stake, basis: "stake", contract_type: contractType, currency: currentCurrency,
+    duration: ticks, duration_unit: "t", symbol
+  };
+  if (barrier !== undefined && barrier !== null && barrier !== "") parameters.barrier = String(barrier);
+  const res = await send({ buy: 1, price: stake, parameters });
+  if (res.error) { alert(res.error.message); return; }
+  if (res.buy) openContracts[res.buy.contract_id] = { ...(openContracts[res.buy.contract_id]||{}), symbol, contractType, isDigit: true };
 }
 
 document.getElementById("rf-rise").onclick = () => placeRiseFall("CALL");
@@ -657,40 +1375,255 @@ document.getElementById("rf-fall").onclick = () => placeRiseFall("PUT");
 document.getElementById("mult-up").onclick = () => placeMultiplier("MULTUP");
 document.getElementById("mult-down").onclick = () => placeMultiplier("MULTDOWN");
 
-async function closeContract(contractId){
+document.querySelectorAll(".digit-btn").forEach(btn => {
+  btn.onclick = () => {
+    const type = btn.dataset.type;
+    if (type === "DIGITEVEN" || type === "DIGITODD") {
+      const symbol = document.getElementById("digit-symbol").value;
+      const ticks = +document.getElementById("digit-ticks-eo").value;
+      const stake = +document.getElementById("digit-stake-eo").value;
+      placeDigit(type, symbol, ticks, stake);
+    } else if (type === "DIGITOVER" || type === "DIGITUNDER") {
+      const symbol = document.getElementById("digit-symbol-ou").value;
+      const ticks = +document.getElementById("digit-ticks-ou").value;
+      const stake = +document.getElementById("digit-stake-ou").value;
+      const barrier = document.getElementById("digit-barrier-ou").value;
+      placeDigit(type, symbol, ticks, stake, barrier);
+    } else {
+      const symbol = document.getElementById("digit-symbol-md").value;
+      const ticks = +document.getElementById("digit-ticks-md").value;
+      const stake = +document.getElementById("digit-stake-md").value;
+      const barrier = document.getElementById("digit-barrier-md").value;
+      placeDigit(type, symbol, ticks, stake, barrier);
+    }
+  };
+});
+
+async function closeContract(contractId, manual){
+  if (manual && openContracts[contractId]) openContracts[contractId].manuallyStopped = true;
   await send({ sell: contractId, price: 0 });
 }
 
-function renderOpenTable(){
-  const openBody = document.getElementById("openTableBody");
-  const closedBody = document.getElementById("closedTableBody");
-  const openRows = Object.values(openContracts).filter(c => c.status === "open");
-  const closedRows = Object.values(openContracts).filter(c => c.status === "closed");
+async function stopAllTrades(){
+  const open = Object.values(openContracts).filter(c => c.status === "open");
+  if (!open.length) { alert("No open trades to stop."); return; }
+  if (!confirm(`Stop all ${open.length} open trade(s) now? This closes them at current market price.`)) return;
+  for (const c of open) {
+    await closeContract(c.contract_id, true);
+  }
+}
+document.getElementById("stopAllBtn").onclick = stopAllTrades;
 
-  openBody.innerHTML = openRows.length ? "" : `<tr class="empty-row"><td colspan="6">No open positions yet.</td></tr>`;
-  openRows.forEach(c => {
-    const tr = document.createElement("tr");
-    const pnlClass = c.profit >= 0 ? "pnl-pos" : "pnl-neg";
-    tr.innerHTML = `<td>${c.contract_id}</td><td>${c.symbol}</td><td>${Number(c.stake).toFixed(2)}</td>
-      <td class="${pnlClass}">${Number(c.profit).toFixed(2)}</td><td>Open</td>
-      <td><button class="close-btn" data-id="${c.contract_id}">Close</button></td>`;
-    tr.querySelector(".close-btn").onclick = () => closeContract(c.contract_id);
-    openBody.appendChild(tr);
-  });
+/* ================= RENDERING: tables, stats, everything derived from real data ================= */
+function fmt(n){ return Number(n||0).toFixed(2); }
+function classify(c){
+  if (c.status === "open") return "open";
+  if (c.manuallyStopped) return "stopped";
+  return c.profit >= 0 ? "win" : "loss";
+}
+function badgeFor(kind){
+  if (kind === "open") return '<span class="badge badge-open">Open</span>';
+  if (kind === "win") return '<span class="badge badge-win">Win</span>';
+  if (kind === "loss") return '<span class="badge badge-loss">Loss</span>';
+  return '<span class="badge badge-stopped">Stopped</span>';
+}
 
-  closedBody.innerHTML = closedRows.length ? "" : `<tr class="empty-row"><td colspan="5">No closed trades yet.</td></tr>`;
-  closedRows.forEach(c => {
-    const tr = document.createElement("tr");
-    const pnlClass = c.profit >= 0 ? "pnl-pos" : "pnl-neg";
-    tr.innerHTML = `<td>${c.contract_id}</td><td>${c.symbol}</td><td>${Number(c.stake).toFixed(2)}</td>
-      <td class="${pnlClass}">${Number(c.profit).toFixed(2)}</td><td>—</td>`;
-    closedBody.appendChild(tr);
-  });
+function renderAll(){
+  renderStats();
+  renderOpenTables();
+  renderHistoryTables();
+  renderDigitsHistory();
+  renderDashboardRecent();
+  renderAccountInfo();
+}
+
+function animateValue(el, to, decimals){
+  const from = parseFloat(el.dataset.val || "0");
+  const start = performance.now();
+  const dur = 500;
+  function step(t){
+    const p = Math.min(1, (t - start) / dur);
+    const v = from + (to - from) * p;
+    el.textContent = v.toFixed(decimals);
+    if (p < 1) requestAnimationFrame(step); else el.dataset.val = to;
+  }
+  requestAnimationFrame(step);
+}
+
+function statCard(label, value, opts){
+  opts = opts || {};
+  const cls = opts.tone === "up" ? "up" : opts.tone === "down" ? "down" : "";
+  return `<div class="stat-card"><div class="accent-bar"></div>
+    <div class="label">${label}</div>
+    <div class="value ${cls}">${value}</div>
+    ${opts.sub ? `<div class="sub">${opts.sub}</div>` : ""}
+  </div>`;
+}
+
+function computeStats(filterFn){
+  const all = Object.values(openContracts).filter(filterFn || (() => true));
+  const open = all.filter(c => c.status === "open");
+  const stopped = all.filter(c => c.status === "closed" && c.manuallyStopped);
+  const closedNatural = all.filter(c => c.status === "closed" && !c.manuallyStopped);
+  const allClosed = all.filter(c => c.status === "closed");
+  const wins = allClosed.filter(c => c.profit >= 0).length;
+  const losses = allClosed.filter(c => c.profit < 0).length;
+  const pl = allClosed.reduce((s, c) => s + Number(c.profit || 0), 0);
+  const volume = all.reduce((s, c) => s + Number(c.stake || 0), 0);
+  const winRate = (wins + losses) ? (wins / (wins + losses) * 100) : 0;
+  const lastTrade = all.reduce((max, c) => Math.max(max, c.date_start || 0), 0);
+  return { total: all.length, open: open.length, stopped: stopped.length, wins, losses, pl, volume, winRate, lastTrade };
+}
+
+function renderStats(){
+  const s = computeStats();
+  const mainGrid = document.getElementById("statGridMain");
+  mainGrid.innerHTML =
+    statCard("Total Trades", s.total) +
+    statCard("Winning Trades", s.wins, { tone:"up" }) +
+    statCard("Losing Trades", s.losses, { tone:"down" }) +
+    statCard("Stopped Trades", s.stopped) +
+    statCard("Open Trades", s.open) +
+    statCard("Win Rate", s.winRate.toFixed(1) + "%", { tone: s.winRate >= 50 ? "up" : "down" }) +
+    statCard("Profit / Loss", (s.pl >= 0 ? "+" : "") + fmt(s.pl) + " " + currentCurrency, { tone: s.pl >= 0 ? "up" : "down" }) +
+    statCard("Total Volume", fmt(s.volume) + " " + currentCurrency) +
+    statCard("Balance", currentBalance !== null ? fmt(currentBalance) + " " + currentCurrency : "—") +
+    statCard("Last Trade", s.lastTrade ? new Date(s.lastTrade*1000).toLocaleTimeString() : "—");
+
+  const digitStats = computeStats(c => c.isDigit);
+  const digitGrid = document.getElementById("statGridDigits");
+  digitGrid.innerHTML =
+    statCard("Total Digits Trades", digitStats.total) +
+    statCard("Winning", digitStats.wins, { tone:"up" }) +
+    statCard("Losing", digitStats.losses, { tone:"down" }) +
+    statCard("Digits Win Rate", digitStats.winRate.toFixed(1) + "%", { tone: digitStats.winRate >= 50 ? "up" : "down" }) +
+    statCard("Open Digits Trades", digitStats.open) +
+    statCard("Last Digits Trade", digitStats.lastTrade ? new Date(digitStats.lastTrade*1000).toLocaleTimeString() : "—");
+}
+
+function openRowHtml(c, withDate){
+  const kind = classify(c);
+  return `<tr>
+    <td>${c.contract_id}</td><td>${c.symbol}</td><td>${c.contractType || "—"}</td>
+    <td>${fmt(c.stake)}</td>
+    <td class="${c.profit >= 0 ? 'pnl-pos' : 'pnl-neg'}">${fmt(c.profit)}</td>
+    ${withDate ? `<td>${c.date_start ? new Date(c.date_start*1000).toLocaleTimeString() : '—'}</td>` : `<td>${badgeFor(kind)}</td>`}
+    <td><button class="close-btn" data-id="${c.contract_id}">Stop</button></td>
+  </tr>`;
+}
+
+function renderOpenTables(){
+  const open = Object.values(openContracts).filter(c => c.status === "open");
+  const bodyTrade = document.querySelector(".open-tbody");
+  const bodyFull = document.querySelector(".open-tbody-full");
+  const html = open.length
+    ? open.map(c => openRowHtml(c, true)).join("")
+    : `<tr class="empty-row"><td colspan="7">No open positions yet.</td></tr>`;
+  bodyTrade.innerHTML = html;
+  bodyFull.innerHTML = html;
+  document.querySelectorAll(".close-btn").forEach(b => b.onclick = () => closeContract(b.dataset.id, true));
+}
+
+function renderHistoryTables(){
+  const all = Object.values(openContracts).filter(c => c.status === "closed");
+  const closed = all.filter(c => !c.manuallyStopped);
+  const stopped = all.filter(c => c.manuallyStopped);
+
+  const closedBody = document.querySelector(".closed-tbody");
+  closedBody.innerHTML = closed.length ? closed.map(c => `<tr>
+    <td>${c.contract_id}</td><td>${c.symbol}</td><td>${c.contractType || "—"}</td>
+    <td>${fmt(c.stake)}</td>
+    <td class="${c.profit >= 0 ? 'pnl-pos' : 'pnl-neg'}">${fmt(c.profit)}</td>
+    <td>${badgeFor(classify(c))}</td>
+    <td>${c.date_start ? new Date(c.date_start*1000).toLocaleString() : "—"}</td>
+  </tr>`).join("") : `<tr class="empty-row"><td colspan="7">No closed trades yet.</td></tr>`;
+
+  const stoppedBody = document.querySelector(".stopped-tbody");
+  stoppedBody.innerHTML = stopped.length ? stopped.map(c => `<tr>
+    <td>${c.contract_id}</td><td>${c.symbol}</td><td>${c.contractType || "—"}</td>
+    <td>${fmt(c.stake)}</td>
+    <td class="${c.profit >= 0 ? 'pnl-pos' : 'pnl-neg'}">${fmt(c.profit)}</td>
+    <td>${c.date_start ? new Date(c.date_start*1000).toLocaleString() : "—"}</td>
+  </tr>`).join("") : `<tr class="empty-row"><td colspan="6">No manually stopped trades yet.</td></tr>`;
+}
+
+function renderDigitsHistory(){
+  const digitTrades = Object.values(openContracts).filter(c => c.isDigit && c.status === "closed");
+  const body = document.querySelector(".digits-history-tbody");
+  body.innerHTML = digitTrades.length ? digitTrades.map(c => `<tr>
+    <td>${c.contract_id}</td><td>${c.contractType || "—"}</td><td>${c.symbol}</td>
+    <td>${fmt(c.stake)}</td>
+    <td class="${c.profit >= 0 ? 'pnl-pos' : 'pnl-neg'}">${fmt(c.profit)}</td>
+    <td>${badgeFor(classify(c))}</td>
+  </tr>`).join("") : `<tr class="empty-row"><td colspan="6">No digits trades yet.</td></tr>`;
+}
+
+function renderDashboardRecent(){
+  const all = Object.values(openContracts).sort((a,b) => (b.date_start||0) - (a.date_start||0)).slice(0, 6);
+  const wrap = document.getElementById("dashRecentWrap");
+  if (!all.length) { wrap.innerHTML = `<p style="color:var(--muted);font-size:.82rem;">No trades yet this session.</p>`; return; }
+  wrap.innerHTML = `<div class="kv-list">` + all.map(c => `
+    <div class="kv-row">
+      <span class="k">${c.contractType || "Contract"} · ${c.symbol}</span>
+      <span class="v ${c.status==='open' ? '' : (c.profit>=0?'pnl-pos':'pnl-neg')}">${c.status==='open' ? 'Open' : (c.profit>=0?'+':'')+fmt(c.profit)}</span>
+    </div>`).join("") + `</div>`;
+}
+
+function renderAccountInfo(){
+  const kv = `
+    <div class="kv-row"><span class="k">Account ID</span><span class="v">${accountInfo.account_id || "—"}</span></div>
+    <div class="kv-row"><span class="k">Currency</span><span class="v">${accountInfo.currency || "—"}</span></div>
+    <div class="kv-row"><span class="k">Account Type</span><span class="v">${accountInfo.account_type || "—"}</span></div>
+    <div class="kv-row"><span class="k">Balance</span><span class="v">${currentBalance !== null ? fmt(currentBalance) : "—"}</span></div>
+    <div class="kv-row"><span class="k">App ID</span><span class="v">${APP_ID}</span></div>
+  `;
+  document.getElementById("accountKv").innerHTML = kv;
+  document.getElementById("settingsKv").innerHTML = kv;
+}
+
+function renderEquityChart(){
+  const svg = document.getElementById("equityChart");
+  const closed = Object.values(openContracts)
+    .filter(c => c.status === "closed")
+    .sort((a,b) => (a.date_start||0) - (b.date_start||0));
+  if (!closed.length) {
+    svg.innerHTML = `<text x="300" y="110" fill="#6B7684" font-size="13" text-anchor="middle">No closed trades yet — equity curve will appear here.</text>`;
+    return;
+  }
+  let cum = 0;
+  const points = closed.map(c => { cum += Number(c.profit || 0); return cum; });
+  const min = Math.min(0, ...points), max = Math.max(0, ...points);
+  const range = (max - min) || 1;
+  const w = 600, h = 220, pad = 10;
+  const pts = points.map((v, i) => {
+    const x = pad + (i / (points.length - 1 || 1)) * (w - pad*2);
+    const y = h - pad - ((v - min) / range) * (h - pad*2);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(" ");
+  const zeroY = h - pad - ((0 - min) / range) * (h - pad*2);
+  const color = cum >= 0 ? "#26D07C" : "#FF5C5C";
+  svg.innerHTML = `
+    <line x1="${pad}" y1="${zeroY}" x2="${w-pad}" y2="${zeroY}" stroke="#1E2530" stroke-dasharray="4 4"/>
+    <polyline fill="none" stroke="${color}" stroke-width="2" points="${pts}"/>
+  `;
+}
+
+/* ================= NOTIFICATIONS — real trade-close events only ================= */
+function notifyTradeClosed(c){
+  const win = c.profit >= 0;
+  const stack = document.getElementById("toastStack");
+  const el = document.createElement("div");
+  el.className = "toast " + (win ? "win" : "loss");
+  el.innerHTML = `<div class="t-title">${win ? "Trade won" : "Trade lost"} — ${c.contractType || "Contract"}</div>
+    <div class="t-sub">${c.symbol} · ${(c.profit>=0?"+":"")}${fmt(c.profit)} ${currentCurrency}</div>`;
+  stack.appendChild(el);
+  setTimeout(() => el.remove(), 6000);
 }
 
 /* ================= INIT ================= */
 initTickerStrip();
 initChart();
+renderAll();
 </script>
 </body>
 </html>
