@@ -1366,7 +1366,12 @@ async function placeDigit(contractType, symbol, ticks, stake, barrier){
   };
   if (barrier !== undefined && barrier !== null && barrier !== "") parameters.barrier = String(barrier);
   const res = await send({ buy: 1, price: stake, parameters });
-  if (res.error) { alert(res.error.message); return; }
+  if (res.error) {
+    console.error("Digit trade error — full response:", JSON.stringify(res.error, null, 2));
+    console.error("Parameters sent:", JSON.stringify(parameters, null, 2));
+    alert(res.error.message + (res.error.details ? "\n\nDetails: " + JSON.stringify(res.error.details) : ""));
+    return;
+  }
   if (res.buy) openContracts[res.buy.contract_id] = { ...(openContracts[res.buy.contract_id]||{}), symbol, contractType, isDigit: true };
 }
 
