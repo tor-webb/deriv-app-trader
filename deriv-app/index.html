@@ -1362,13 +1362,15 @@ async function placeMultiplier(direction){
 async function placeDigit(contractType, symbol, ticks, stake, barrier){
   const parameters = {
     amount: stake, basis: "stake", contract_type: contractType, currency: currentCurrency,
-    duration: ticks, duration_unit: "t", symbol
+    duration: ticks, duration_unit: "t"
   };
   if (barrier !== undefined && barrier !== null && barrier !== "") parameters.barrier = String(barrier);
-  const res = await send({ buy: 1, price: stake, parameters });
+  // This API's schema rejects "symbol" inside parameters for DIGIT* contract types —
+  // it goes as a top-level field on the request instead.
+  const res = await send({ buy: 1, price: stake, symbol, parameters });
   if (res.error) {
     console.error("Digit trade error — full response:", JSON.stringify(res.error, null, 2));
-    console.error("Parameters sent:", JSON.stringify(parameters, null, 2));
+    console.error("Request sent:", JSON.stringify({ buy: 1, price: stake, symbol, parameters }, null, 2));
     alert(res.error.message + (res.error.details ? "\n\nDetails: " + JSON.stringify(res.error.details) : ""));
     return;
   }
