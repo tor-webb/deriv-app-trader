@@ -91,6 +91,63 @@
   .page.active{display:block;animation:fadein .25s ease;}
   @keyframes fadein{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
 
+  /* ---------- Bots ---------- */
+  .bots-toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
+  .bots-empty{background:var(--panel-2);border:1px dashed var(--border);border-radius:12px;padding:40px;text-align:center;color:var(--muted);}
+  .bots-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;}
+  .bot-card{background:var(--panel-2);border:1px solid var(--border);border-radius:12px;padding:16px 18px;box-shadow:var(--shadow-sm);position:relative;overflow:hidden;}
+  .bot-card .accent-bar{position:absolute;top:0;left:0;width:3px;height:100%;opacity:.8;}
+  .bot-card.status-running .accent-bar{background:var(--accent);}
+  .bot-card.status-paused .accent-bar{background:var(--warn);}
+  .bot-card.status-stopped .accent-bar{background:var(--muted);}
+  .bot-card-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;}
+  .bot-card-head h4{margin:0 0 4px;font-family:'Space Grotesk',sans-serif;font-size:.98rem;}
+  .bot-card-head .sub{font-size:.72rem;color:var(--muted);}
+  .status-pill{font-size:.66rem;text-transform:uppercase;letter-spacing:.05em;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap;}
+  .status-pill.running{background:rgba(0,217,192,.15);color:var(--accent);}
+  .status-pill.paused{background:rgba(255,176,32,.15);color:var(--warn);}
+  .status-pill.stopped{background:rgba(107,118,132,.18);color:var(--muted);}
+  .bot-stats-mini{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:12px 0;}
+  .bot-stats-mini .mini{background:var(--panel-3);border-radius:8px;padding:8px 10px;}
+  .bot-stats-mini .mini .l{font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px;}
+  .bot-stats-mini .mini .v{font-family:'IBM Plex Mono',monospace;font-size:.92rem;font-weight:600;}
+  .bot-last-signal{font-size:.74rem;color:var(--muted);margin-bottom:12px;}
+  .bot-last-signal b{color:var(--text);}
+  .bot-controls{display:flex;flex-wrap:wrap;gap:6px;}
+  .bot-controls button{
+    background:var(--panel-3);border:1px solid var(--border);color:var(--text);
+    padding:6px 10px;border-radius:6px;font-size:.75rem;cursor:pointer;font-family:'Inter',sans-serif;
+  }
+  .bot-controls button:hover{border-color:#2A3442;}
+  .bot-controls button.primary{background:var(--accent);color:#00201C;border-color:var(--accent);font-weight:600;}
+  .bot-controls button.danger{background:var(--down);color:#1A0303;border-color:var(--down);}
+  .bot-controls button.warn{background:var(--warn);color:#1A1200;border-color:var(--warn);}
+
+  .toggle-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+  .toggle-row label{font-size:.78rem;color:var(--text);}
+  .switch{position:relative;width:38px;height:21px;flex-shrink:0;}
+  .switch input{opacity:0;width:0;height:0;}
+  .switch .slider{position:absolute;inset:0;background:var(--panel-3);border:1px solid var(--border);border-radius:20px;cursor:pointer;transition:.15s;}
+  .switch .slider:before{content:"";position:absolute;width:15px;height:15px;left:2px;top:2px;background:var(--muted);border-radius:50%;transition:.15s;}
+  .switch input:checked + .slider{background:var(--accent-dim);border-color:var(--accent);}
+  .switch input:checked + .slider:before{transform:translateX(17px);background:var(--accent);}
+
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(4,6,10,.6);backdrop-filter:blur(2px);z-index:90;align-items:flex-start;justify-content:center;overflow-y:auto;padding:40px 16px;}
+  .modal-overlay.active{display:flex;}
+  .modal-box{background:var(--panel);border:1px solid var(--border);border-radius:14px;width:100%;max-width:560px;box-shadow:var(--shadow);}
+  .modal-head{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid var(--border);}
+  .modal-head h3{margin:0;font-family:'Space Grotesk',sans-serif;font-size:1.02rem;}
+  .modal-close{background:none;border:none;color:var(--muted);font-size:1.2rem;cursor:pointer;line-height:1;}
+  .modal-body{padding:20px 22px;max-height:70vh;overflow-y:auto;}
+  .modal-foot{display:flex;justify-content:flex-end;gap:10px;padding:16px 22px;border-top:1px solid var(--border);}
+  .modal-subhead{font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:18px 0 10px;}
+  .modal-subhead:first-child{margin-top:0;}
+  .radio-duo{display:flex;gap:10px;margin-bottom:16px;}
+  .radio-duo label{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;background:var(--panel-3);border:1px solid var(--border);border-radius:6px;padding:10px;font-size:.85rem;cursor:pointer;}
+  .radio-duo input{accent-color:var(--accent);}
+  .toast.info{border-left-color:var(--accent);}
+  .toast.warn{border-left-color:var(--warn);}
+
   .section-title{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:1rem;margin:0 0 14px;display:flex;align-items:center;gap:8px;}
   .section-title .hint{font-family:'Inter',sans-serif;font-weight:400;font-size:.78rem;color:var(--muted);}
 
@@ -576,6 +633,7 @@
       <div class="navitem active" data-page="dashboard">Dashboard</div>
       <div class="navitem" data-page="trade">Trade</div>
       <div class="navitem" data-page="digits">Digits Trading</div>
+      <div class="navitem" data-page="bots">Bots</div>
       <div class="navitem" data-page="open">Open Trades</div>
       <div class="navitem" data-page="history">History</div>
       <div class="navitem" data-page="analytics">Analytics</div>
@@ -801,7 +859,73 @@
           </div>
         </div>
 
-        <!-- ================= OPEN TRADES ================= -->
+        <!-- ================= BOTS ================= -->
+        <div class="page" id="page-bots">
+          <div class="bots-toolbar">
+            <div class="section-title" style="margin:0;">Automated Bots <span class="hint">Runs while this browser tab stays open</span></div>
+            <button class="btn" id="newBotBtn">+ New Bot</button>
+          </div>
+          <div class="bots-empty" id="botsEmpty">No bots yet. Create one to start automated Even/Odd trading.</div>
+          <div class="bots-grid" id="botsGrid"></div>
+
+          <div class="section-title" style="margin-top:26px;">Bot Trade Log</div>
+          <div class="table-card">
+            <table id="botLogTable">
+              <thead><tr><th>Time</th><th>Bot</th><th>Symbol</th><th>Type</th><th>Stake</th><th>P/L</th><th>Result</th></tr></thead>
+              <tbody class="bot-log-tbody"><tr class="empty-row"><td colspan="7">No bot trades yet.</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ================= BOT CONFIG MODAL ================= -->
+        <div class="modal-overlay" id="botModalOverlay">
+          <div class="modal-box">
+            <div class="modal-head">
+              <h3 id="botModalTitle">New Bot</h3>
+              <button class="modal-close" id="botModalClose">✕</button>
+            </div>
+            <div class="modal-body">
+              <input type="hidden" id="bot-id">
+
+              <div class="modal-subhead">General</div>
+              <div class="field"><label>Bot Name</label><input type="text" id="bot-name" placeholder="e.g. R_100 Even Hunter"></div>
+              <div class="duo">
+                <div class="field"><label>Symbol</label><select id="bot-symbol"></select></div>
+                <div class="field"><label>Prediction</label>
+                  <select id="bot-prediction">
+                    <option value="DIGITEVEN">Even</option>
+                    <option value="DIGITODD">Odd</option>
+                  </select>
+                </div>
+              </div>
+              <div class="duo">
+                <div class="field"><label>Duration (ticks)</label><input type="number" id="bot-duration" value="5" min="1" max="10"></div>
+                <div class="field"><label>Initial Stake</label><input type="number" id="bot-stake" value="1" min="0.35" step="0.01"></div>
+              </div>
+
+              <div class="modal-subhead">Martingale</div>
+              <div class="toggle-row">
+                <label>Enable Martingale</label>
+                <label class="switch"><input type="checkbox" id="bot-martingale-enabled"><span class="slider"></span></label>
+              </div>
+              <div class="duo">
+                <div class="field"><label>Multiplier</label><input type="number" id="bot-martingale-multiplier" value="2" min="1.1" step="0.1"></div>
+                <div class="field"><label>Max Levels</label><input type="number" id="bot-martingale-max" value="5" min="1"></div>
+              </div>
+
+              <div class="modal-subhead">Risk Management</div>
+              <div class="duo">
+                <div class="field"><label>Take Profit (USD)</label><input type="number" id="bot-take-profit" placeholder="Optional" min="0" step="0.01"></div>
+                <div class="field"><label>Stop Loss (USD)</label><input type="number" id="bot-stop-loss" placeholder="Optional" min="0" step="0.01"></div>
+              </div>
+              <div class="field"><label>Max Trades (Optional)</label><input type="number" id="bot-max-trades" placeholder="Unlimited" min="1"></div>
+            </div>
+            <div class="modal-foot">
+              <button class="btn btn-ghost" id="botModalCancel">Cancel</button>
+              <button class="btn" id="botModalSave">Save Bot</button>
+            </div>
+          </div>
+        </div>
         <div class="page" id="page-open">
           <div class="section-title">Open Trades</div>
           <div class="table-card">
@@ -1132,6 +1256,7 @@ function handleMessage(data){
     });
     if (wasOpen && c.is_sold) {
       notifyTradeClosed(openContracts[c.contract_id]);
+      if (botContractMap[c.contract_id]) onBotContractSettled(botContractMap[c.contract_id], openContracts[c.contract_id]);
     }
     renderAll();
   }
@@ -1145,7 +1270,7 @@ function handleMessage(data){
 
 /* ================= NAVIGATION ================= */
 const PAGE_TITLES = {
-  dashboard:"Dashboard", trade:"Trade", digits:"Digits Trading",
+  dashboard:"Dashboard", trade:"Trade", digits:"Digits Trading", bots:"Bots",
   open:"Open Trades", history:"Trade History", analytics:"Analytics", settings:"Settings"
 };
 document.querySelectorAll(".navitem").forEach(item => {
@@ -1627,6 +1752,356 @@ function notifyTradeClosed(c){
   stack.appendChild(el);
   setTimeout(() => el.remove(), 6000);
 }
+
+/* ================= BOTS ================= */
+const BOT_STORAGE_KEY = "quantum_bots_config_v1";
+let bots = [];
+const botContractMap = {}; // contract_id -> bot_id
+
+function loadBots(){
+  try {
+    const saved = JSON.parse(localStorage.getItem(BOT_STORAGE_KEY) || "[]");
+    bots = saved.map(cfg => ({ ...cfg, status: "stopped", stats: freshBotStats() }));
+  } catch { bots = []; }
+}
+
+function persistBots(){
+  const configsOnly = bots.map(b => ({
+    id: b.id, name: b.name, strategy: b.strategy, symbol: b.symbol, prediction: b.prediction,
+    duration: b.duration, durationUnit: b.durationUnit, initialStake: b.initialStake,
+    martingaleEnabled: b.martingaleEnabled, martingaleMultiplier: b.martingaleMultiplier, martingaleMax: b.martingaleMax,
+    takeProfit: b.takeProfit, stopLoss: b.stopLoss, maxTrades: b.maxTrades,
+  }));
+  localStorage.setItem(BOT_STORAGE_KEY, JSON.stringify(configsOnly));
+}
+
+function freshBotStats(){
+  return {
+    totalTrades: 0, wins: 0, losses: 0, profit: 0,
+    currentStake: null, martingaleLevel: 0,
+    startedAt: null, lastTrade: null, lastSignal: null,
+  };
+}
+
+function newBotId(){ return "bot_" + Date.now() + "_" + Math.floor(Math.random()*1000); }
+
+function symbolLabel(code){ const s = SYMBOLS.find(x => x.code === code); return s ? s.name : code; }
+
+/* ---- Modal ---- */
+function openBotModal(botId){
+  const overlay = document.getElementById("botModalOverlay");
+  document.getElementById("botModalTitle").textContent = botId ? "Edit Bot" : "New Bot";
+  document.getElementById("bot-id").value = botId || "";
+  const bot = botId ? bots.find(b => b.id === botId) : null;
+  document.getElementById("bot-name").value = bot ? bot.name : "";
+  document.getElementById("bot-symbol").value = bot ? bot.symbol : activeSymbol;
+  document.getElementById("bot-prediction").value = bot ? bot.prediction : "DIGITEVEN";
+  document.getElementById("bot-duration").value = bot ? bot.duration : 5;
+  document.getElementById("bot-stake").value = bot ? bot.initialStake : 1;
+  document.getElementById("bot-martingale-enabled").checked = bot ? bot.martingaleEnabled : false;
+  document.getElementById("bot-martingale-multiplier").value = bot ? bot.martingaleMultiplier : 2;
+  document.getElementById("bot-martingale-max").value = bot ? bot.martingaleMax : 5;
+  document.getElementById("bot-take-profit").value = bot && bot.takeProfit != null ? bot.takeProfit : "";
+  document.getElementById("bot-stop-loss").value = bot && bot.stopLoss != null ? bot.stopLoss : "";
+  document.getElementById("bot-max-trades").value = bot && bot.maxTrades != null ? bot.maxTrades : "";
+  overlay.classList.add("active");
+}
+function closeBotModal(){ document.getElementById("botModalOverlay").classList.remove("active"); }
+
+document.getElementById("newBotBtn").onclick = () => openBotModal(null);
+document.getElementById("botModalClose").onclick = closeBotModal;
+document.getElementById("botModalCancel").onclick = closeBotModal;
+document.getElementById("botModalOverlay").addEventListener("click", (e) => {
+  if (e.target.id === "botModalOverlay") closeBotModal();
+});
+
+document.getElementById("botModalSave").onclick = () => {
+  const id = document.getElementById("bot-id").value;
+  const name = document.getElementById("bot-name").value.trim();
+  if (!name) { alert("Please give this bot a name."); return; }
+  const stakeVal = parseFloat(document.getElementById("bot-stake").value);
+  if (!stakeVal || stakeVal <= 0) { alert("Please enter a valid stake."); return; }
+
+  const cfg = {
+    id: id || newBotId(),
+    name,
+    strategy: "EVEN_ODD",
+    symbol: document.getElementById("bot-symbol").value,
+    prediction: document.getElementById("bot-prediction").value,
+    duration: +document.getElementById("bot-duration").value || 5,
+    durationUnit: "t",
+    initialStake: stakeVal,
+    martingaleEnabled: document.getElementById("bot-martingale-enabled").checked,
+    martingaleMultiplier: parseFloat(document.getElementById("bot-martingale-multiplier").value) || 2,
+    martingaleMax: +document.getElementById("bot-martingale-max").value || 5,
+    takeProfit: document.getElementById("bot-take-profit").value ? parseFloat(document.getElementById("bot-take-profit").value) : null,
+    stopLoss: document.getElementById("bot-stop-loss").value ? parseFloat(document.getElementById("bot-stop-loss").value) : null,
+    maxTrades: document.getElementById("bot-max-trades").value ? +document.getElementById("bot-max-trades").value : null,
+  };
+
+  const existingIdx = bots.findIndex(b => b.id === cfg.id);
+  if (existingIdx >= 0) {
+    bots[existingIdx] = { ...bots[existingIdx], ...cfg };
+  } else {
+    bots.push({ ...cfg, status: "stopped", stats: freshBotStats() });
+  }
+  persistBots();
+  renderBots();
+  closeBotModal();
+};
+
+/* ---- CRUD actions ---- */
+function duplicateBot(botId){
+  const bot = bots.find(b => b.id === botId);
+  if (!bot) return;
+  const copy = { ...bot, id: newBotId(), name: bot.name + " (copy)", status: "stopped", stats: freshBotStats() };
+  bots.push(copy);
+  persistBots();
+  renderBots();
+}
+
+function deleteBot(botId){
+  const bot = bots.find(b => b.id === botId);
+  if (!bot) return;
+  if (bot.status === "running") { alert("Stop this bot before deleting it."); return; }
+  if (!confirm(`Delete bot "${bot.name}"? This cannot be undone.`)) return;
+  bots = bots.filter(b => b.id !== botId);
+  persistBots();
+  renderBots();
+}
+
+/* ---- Lifecycle ---- */
+function startBot(botId){
+  const bot = bots.find(b => b.id === botId);
+  if (!bot || bot.status === "running") return;
+  if (bot.status === "stopped") {
+    bot.stats = freshBotStats();
+    bot.stats.currentStake = bot.initialStake;
+    bot.stats.startedAt = Date.now();
+  }
+  bot.status = "running";
+  notifyBotEvent(bot, "info", "Bot started");
+  renderBots();
+  if (!bot._runningContract) placeBotTrade(bot);
+}
+
+function pauseBot(botId){
+  const bot = bots.find(b => b.id === botId);
+  if (!bot || bot.status !== "running") return;
+  bot.status = "paused";
+  notifyBotEvent(bot, "warn", "Bot paused");
+  renderBots();
+}
+
+function resumeBot(botId){
+  const bot = bots.find(b => b.id === botId);
+  if (!bot || bot.status !== "paused") return;
+  bot.status = "running";
+  notifyBotEvent(bot, "info", "Bot resumed");
+  renderBots();
+  if (!bot._runningContract) placeBotTrade(bot);
+}
+
+function stopBot(botId, silent){
+  const bot = bots.find(b => b.id === botId);
+  if (!bot) return;
+  bot.status = "stopped";
+  if (!silent) notifyBotEvent(bot, "info", "Bot stopped");
+  renderBots();
+}
+
+/* ---- Execution engine ---- */
+async function placeBotTrade(bot){
+  if (bot.status !== "running") return;
+  if (bot.maxTrades != null && bot.stats.totalTrades >= bot.maxTrades) {
+    notifyBotEvent(bot, "info", "Max trades reached — stopping");
+    stopBot(bot.id, true);
+    renderBots();
+    return;
+  }
+
+  const stake = bot.stats.currentStake || bot.initialStake;
+  bot._runningContract = true;
+  bot.stats.lastSignal = `${bot.prediction === "DIGITEVEN" ? "Even" : "Odd"} · stake ${fmt(stake)}`;
+  renderBots();
+
+  const parameters = {
+    amount: stake, basis: "stake", contract_type: bot.prediction, currency: currentCurrency,
+    duration: bot.duration, duration_unit: "t", underlying_symbol: bot.symbol
+  };
+  const res = await send({ buy: 1, price: stake, parameters });
+
+  if (res.error) {
+    console.error("Bot trade error:", bot.name, JSON.stringify(res.error, null, 2));
+    notifyBotEvent(bot, "error", "Trade error: " + res.error.message);
+    bot._runningContract = false;
+    stopBot(bot.id, true);
+    renderBots();
+    return;
+  }
+
+  const contractId = res.buy.contract_id;
+  botContractMap[contractId] = bot.id;
+}
+
+function onBotContractSettled(botId, contract){
+  const bot = bots.find(b => b.id === botId);
+  if (!bot) return;
+  bot._runningContract = false;
+  if (contract.contract_id) delete botContractMap[contract.contract_id];
+
+  const profit = Number(contract.profit || 0);
+  const win = profit >= 0;
+  bot.stats.totalTrades++;
+  if (win) bot.stats.wins++; else bot.stats.losses++;
+  bot.stats.profit += profit;
+  bot.stats.lastTrade = { symbol: contract.symbol, profit, time: Date.now(), win };
+  logBotTrade(bot, contract, profit, win);
+  notifyBotEvent(bot, win ? "success" : "loss",
+    `${win ? "Trade won" : "Trade lost"} — ${fmt(Math.abs(profit))} ${currentCurrency}`);
+
+  // Martingale progression
+  if (win) {
+    bot.stats.currentStake = bot.initialStake;
+    bot.stats.martingaleLevel = 0;
+  } else if (bot.martingaleEnabled && bot.stats.martingaleLevel < bot.martingaleMax) {
+    bot.stats.martingaleLevel++;
+    bot.stats.currentStake = +(bot.stats.currentStake * bot.martingaleMultiplier).toFixed(2);
+  } else {
+    bot.stats.currentStake = bot.initialStake;
+    bot.stats.martingaleLevel = 0;
+  }
+
+  // Risk limits
+  if (bot.takeProfit != null && bot.stats.profit >= bot.takeProfit) {
+    notifyBotEvent(bot, "success", "Take profit reached — stopping");
+    stopBot(bot.id, true);
+  } else if (bot.stopLoss != null && bot.stats.profit <= -Math.abs(bot.stopLoss)) {
+    notifyBotEvent(bot, "error", "Stop loss reached — stopping");
+    stopBot(bot.id, true);
+  } else if (bot.maxTrades != null && bot.stats.totalTrades >= bot.maxTrades) {
+    notifyBotEvent(bot, "info", "Max trades reached — stopping");
+    stopBot(bot.id, true);
+  } else if (bot.status === "running") {
+    placeBotTrade(bot);
+  }
+
+  renderBots();
+}
+
+/* ---- Notifications & log ---- */
+function notifyBotEvent(bot, kind, message){
+  const stack = document.getElementById("toastStack");
+  const cls = kind === "success" ? "win" : kind === "loss" || kind === "error" ? "loss" : kind === "warn" ? "warn" : "info";
+  const el = document.createElement("div");
+  el.className = "toast " + cls;
+  el.innerHTML = `<div class="t-title">${bot.name}</div><div class="t-sub">${message}</div>`;
+  stack.appendChild(el);
+  setTimeout(() => el.remove(), 6000);
+  if (window.Notification && Notification.permission === "granted") {
+    try { new Notification(bot.name, { body: message }); } catch {}
+  }
+}
+
+const botTradeLog = [];
+function logBotTrade(bot, contract, profit, win){
+  botTradeLog.unshift({
+    time: Date.now(), botName: bot.name, symbol: contract.symbol,
+    contractType: bot.prediction === "DIGITEVEN" ? "Even" : "Odd",
+    stake: contract.stake, profit, win,
+  });
+  if (botTradeLog.length > 200) botTradeLog.pop();
+  renderBotLog();
+}
+
+function renderBotLog(){
+  const tbody = document.querySelector(".bot-log-tbody");
+  if (!tbody) return;
+  if (!botTradeLog.length) { tbody.innerHTML = `<tr class="empty-row"><td colspan="7">No bot trades yet.</td></tr>`; return; }
+  tbody.innerHTML = botTradeLog.slice(0, 50).map(t => `
+    <tr>
+      <td>${new Date(t.time).toLocaleTimeString()}</td>
+      <td>${t.botName}</td>
+      <td>${t.symbol}</td>
+      <td>${t.contractType}</td>
+      <td>${fmt(t.stake)}</td>
+      <td class="${t.profit >= 0 ? 'up-color' : 'down-color'}">${t.profit>=0?'+':''}${fmt(t.profit)}</td>
+      <td>${t.win ? '<span class="up-color">Won</span>' : '<span class="down-color">Lost</span>'}</td>
+    </tr>`).join("");
+}
+
+/* ---- Rendering ---- */
+function formatRunningTime(startedAt){
+  if (!startedAt) return "—";
+  const secs = Math.floor((Date.now() - startedAt) / 1000);
+  const h = Math.floor(secs / 3600), m = Math.floor((secs % 3600) / 60), s = secs % 60;
+  return h > 0 ? `${h}h ${m}m` : m > 0 ? `${m}m ${s}s` : `${s}s`;
+}
+
+function renderBots(){
+  const grid = document.getElementById("botsGrid");
+  const empty = document.getElementById("botsEmpty");
+  if (!grid) return;
+  if (!bots.length) { grid.innerHTML = ""; empty.style.display = "block"; return; }
+  empty.style.display = "none";
+
+  grid.innerHTML = bots.map(bot => {
+    const s = bot.stats;
+    const winRate = s.totalTrades ? ((s.wins / s.totalTrades) * 100).toFixed(1) : "0.0";
+    const controls = bot.status === "stopped"
+      ? `<button class="primary" onclick="startBot('${bot.id}')">▶ Start</button>`
+      : bot.status === "running"
+      ? `<button onclick="pauseBot('${bot.id}')">⏸ Pause</button><button class="danger" onclick="stopBot('${bot.id}')">⏹ Stop</button>`
+      : `<button class="primary" onclick="resumeBot('${bot.id}')">▶ Resume</button><button class="danger" onclick="stopBot('${bot.id}')">⏹ Stop</button>`;
+
+    return `
+    <div class="bot-card status-${bot.status}">
+      <div class="accent-bar"></div>
+      <div class="bot-card-head">
+        <div>
+          <h4>${bot.name}</h4>
+          <div class="sub">${symbolLabel(bot.symbol)} · ${bot.prediction === "DIGITEVEN" ? "Even" : "Odd"} · ${bot.duration} ticks</div>
+        </div>
+        <span class="status-pill ${bot.status}">${bot.status}</span>
+      </div>
+      <div class="bot-stats-mini">
+        <div class="mini"><div class="l">Trades</div><div class="v">${s.totalTrades}</div></div>
+        <div class="mini"><div class="l">Win Rate</div><div class="v">${winRate}%</div></div>
+        <div class="mini"><div class="l">P/L</div><div class="v ${s.profit>=0?'up-color':'down-color'}">${s.profit>=0?'+':''}${fmt(s.profit)}</div></div>
+        <div class="mini"><div class="l">Stake</div><div class="v">${fmt(s.currentStake ?? bot.initialStake)}</div></div>
+        <div class="mini"><div class="l">Mtg. Level</div><div class="v">${s.martingaleLevel}</div></div>
+        <div class="mini"><div class="l">Running</div><div class="v">${bot.status === "running" ? formatRunningTime(s.startedAt) : "—"}</div></div>
+      </div>
+      <div class="bot-last-signal">Last signal: <b>${s.lastSignal || "—"}</b></div>
+      <div class="bot-controls">
+        ${controls}
+        <button onclick="openBotModal('${bot.id}')">✏ Edit</button>
+        <button onclick="duplicateBot('${bot.id}')">Duplicate</button>
+        <button onclick="deleteBot('${bot.id}')">Delete</button>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function populateBotSymbolSelect(){
+  const sel = document.getElementById("bot-symbol");
+  if (!sel) return;
+  SYMBOLS.forEach(s => {
+    const opt = document.createElement("option");
+    opt.value = s.code; opt.textContent = s.name;
+    sel.appendChild(opt);
+  });
+}
+
+if (window.Notification && Notification.permission === "default") {
+  document.getElementById("newBotBtn")?.addEventListener("click", () => Notification.requestPermission(), { once: true });
+}
+
+setInterval(() => { if (document.getElementById("page-bots")?.classList.contains("active")) renderBots(); }, 1000);
+
+loadBots();
+populateBotSymbolSelect();
+renderBots();
 
 /* ================= INIT ================= */
 initTickerStrip();
