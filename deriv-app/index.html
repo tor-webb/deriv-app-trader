@@ -865,7 +865,7 @@
             <div class="section-title" style="margin:0;">Automated Bots <span class="hint">Runs while this browser tab stays open</span></div>
             <button class="btn" id="newBotBtn">+ New Bot</button>
           </div>
-          <div class="bots-empty" id="botsEmpty">No bots yet. Create one to start automated Even/Odd trading.</div>
+          <div class="bots-empty" id="botsEmpty">No bots yet. Create one to start automated trading.</div>
           <div class="bots-grid" id="botsGrid"></div>
 
           <div class="section-title" style="margin-top:26px;">Bot Trade Log</div>
@@ -888,16 +888,60 @@
               <input type="hidden" id="bot-id">
 
               <div class="modal-subhead">General</div>
-              <div class="field"><label>Bot Name</label><input type="text" id="bot-name" placeholder="e.g. R_100 Even Hunter"></div>
+              <div class="field"><label>Bot Name</label><input type="text" id="bot-name" placeholder="e.g. R_100 Trend Hunter"></div>
               <div class="duo">
                 <div class="field"><label>Symbol</label><select id="bot-symbol"></select></div>
-                <div class="field"><label>Prediction</label>
-                  <select id="bot-prediction">
-                    <option value="DIGITEVEN">Even</option>
-                    <option value="DIGITODD">Odd</option>
+                <div class="field"><label>Trade Type</label>
+                  <select id="bot-tradetype">
+                    <option value="EVENODD">Even / Odd</option>
+                    <option value="OVERUNDER">Over / Under</option>
+                    <option value="MATCHDIFFER">Matches / Differs</option>
                   </select>
                 </div>
               </div>
+
+              <div class="modal-subhead">Strategy</div>
+              <div class="field">
+                <label>Strategy</label>
+                <select id="bot-strategy">
+                  <option value="fixed">Fixed Prediction</option>
+                  <option value="trend">Follow Trend — bet with the recent pattern</option>
+                  <option value="reversal">Reversal — bet against the recent pattern</option>
+                </select>
+              </div>
+              <div class="field" id="bot-field-prediction">
+                <label>Prediction</label>
+                <select id="bot-prediction">
+                  <option value="DIGITEVEN">Even</option>
+                  <option value="DIGITODD">Odd</option>
+                </select>
+              </div>
+              <div class="field" id="bot-field-direction-ou" style="display:none;">
+                <label>Direction</label>
+                <select id="bot-direction-ou">
+                  <option value="DIGITOVER">Over</option>
+                  <option value="DIGITUNDER">Under</option>
+                </select>
+              </div>
+              <div class="field" id="bot-field-direction-md" style="display:none;">
+                <label>Direction</label>
+                <select id="bot-direction-md">
+                  <option value="DIGITMATCH">Matches</option>
+                  <option value="DIGITDIFF">Differs</option>
+                </select>
+              </div>
+              <div class="field" id="bot-field-barrier" style="display:none;">
+                <label>Barrier Digit (0–9) <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0;">— used when Strategy is Fixed</span></label>
+                <input type="number" id="bot-barrier" value="5" min="0" max="9">
+              </div>
+              <div class="field" id="bot-field-window" style="display:none;">
+                <label>Analysis Window (recent ticks) <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0;">— used when Strategy is Trend/Reversal</span></label>
+                <input type="number" id="bot-analysis-window" value="20" min="5" max="100">
+              </div>
+              <div class="payout-preview" style="margin-bottom:16px;">
+                <b style="color:var(--text);">Fixed</b> always trades your chosen prediction. <b style="color:var(--text);">Follow Trend</b> reads the last N ticks of this symbol and bets with whichever side (even/odd, high/low digits, hottest digit) has occurred most. <b style="color:var(--text);">Reversal</b> does the opposite — betting the recent pattern won't continue. Synthetic index digits are close to random, so no strategy guarantees wins — this changes which signal drives entries, not the underlying odds.
+              </div>
+
               <div class="duo">
                 <div class="field"><label>Duration (ticks)</label><input type="number" id="bot-duration" value="5" min="1" max="10"></div>
                 <div class="field"><label>Initial Stake</label><input type="number" id="bot-stake" value="1" min="0.35" step="0.01"></div>
@@ -1767,7 +1811,10 @@ function loadBots(){
 
 function persistBots(){
   const configsOnly = bots.map(b => ({
-    id: b.id, name: b.name, strategy: b.strategy, symbol: b.symbol, prediction: b.prediction,
+    id: b.id, name: b.name, symbol: b.symbol,
+    tradeType: b.tradeType, strategy: b.strategy,
+    prediction: b.prediction, directionOU: b.directionOU, directionMD: b.directionMD,
+    barrier: b.barrier, analysisWindow: b.analysisWindow,
     duration: b.duration, durationUnit: b.durationUnit, initialStake: b.initialStake,
     martingaleEnabled: b.martingaleEnabled, martingaleMultiplier: b.martingaleMultiplier, martingaleMax: b.martingaleMax,
     takeProfit: b.takeProfit, stopLoss: b.stopLoss, maxTrades: b.maxTrades,
@@ -1788,6 +1835,25 @@ function newBotId(){ return "bot_" + Date.now() + "_" + Math.floor(Math.random()
 function symbolLabel(code){ const s = SYMBOLS.find(x => x.code === code); return s ? s.name : code; }
 
 /* ---- Modal ---- */
+function updateBotModalFieldsVisibility(){
+  const tradeType = document.getElementById("bot-tradetype").value;
+  const strategy = document.getElementById("bot-strategy").value;
+
+  document.getElementById("bot-field-prediction").style.display = (tradeType === "EVENODD") ? "block" : "none";
+  document.getElementById("bot-field-direction-ou").style.display = (tradeType === "OVERUNDER") ? "block" : "none";
+  document.getElementById("bot-field-direction-md").style.display = (tradeType === "MATCHDIFFER") ? "block" : "none";
+  document.getElementById("bot-field-barrier").style.display = (tradeType !== "EVENODD") ? "block" : "none";
+  document.getElementById("bot-field-window").style.display = (strategy !== "fixed") ? "block" : "none";
+
+  // When the strategy decides the side dynamically, the manual prediction/direction pickers
+  // and the fixed barrier no longer apply — grey them out rather than hide, so it's clear why.
+  const dynamic = strategy !== "fixed";
+  document.getElementById("bot-prediction").disabled = dynamic;
+  document.getElementById("bot-direction-ou").disabled = dynamic;
+  document.getElementById("bot-direction-md").disabled = dynamic;
+  document.getElementById("bot-barrier").disabled = dynamic;
+}
+
 function openBotModal(botId){
   const overlay = document.getElementById("botModalOverlay");
   document.getElementById("botModalTitle").textContent = botId ? "Edit Bot" : "New Bot";
@@ -1795,7 +1861,13 @@ function openBotModal(botId){
   const bot = botId ? bots.find(b => b.id === botId) : null;
   document.getElementById("bot-name").value = bot ? bot.name : "";
   document.getElementById("bot-symbol").value = bot ? bot.symbol : activeSymbol;
-  document.getElementById("bot-prediction").value = bot ? bot.prediction : "DIGITEVEN";
+  document.getElementById("bot-tradetype").value = bot ? (bot.tradeType || "EVENODD") : "EVENODD";
+  document.getElementById("bot-strategy").value = bot ? (bot.strategy || "fixed") : "fixed";
+  document.getElementById("bot-prediction").value = bot ? (bot.prediction || "DIGITEVEN") : "DIGITEVEN";
+  document.getElementById("bot-direction-ou").value = bot ? (bot.directionOU || "DIGITOVER") : "DIGITOVER";
+  document.getElementById("bot-direction-md").value = bot ? (bot.directionMD || "DIGITMATCH") : "DIGITMATCH";
+  document.getElementById("bot-barrier").value = bot && bot.barrier != null ? bot.barrier : 5;
+  document.getElementById("bot-analysis-window").value = bot && bot.analysisWindow != null ? bot.analysisWindow : 20;
   document.getElementById("bot-duration").value = bot ? bot.duration : 5;
   document.getElementById("bot-stake").value = bot ? bot.initialStake : 1;
   document.getElementById("bot-martingale-enabled").checked = bot ? bot.martingaleEnabled : false;
@@ -1804,6 +1876,7 @@ function openBotModal(botId){
   document.getElementById("bot-take-profit").value = bot && bot.takeProfit != null ? bot.takeProfit : "";
   document.getElementById("bot-stop-loss").value = bot && bot.stopLoss != null ? bot.stopLoss : "";
   document.getElementById("bot-max-trades").value = bot && bot.maxTrades != null ? bot.maxTrades : "";
+  updateBotModalFieldsVisibility();
   overlay.classList.add("active");
 }
 function closeBotModal(){ document.getElementById("botModalOverlay").classList.remove("active"); }
@@ -1814,6 +1887,8 @@ document.getElementById("botModalCancel").onclick = closeBotModal;
 document.getElementById("botModalOverlay").addEventListener("click", (e) => {
   if (e.target.id === "botModalOverlay") closeBotModal();
 });
+document.getElementById("bot-tradetype").onchange = updateBotModalFieldsVisibility;
+document.getElementById("bot-strategy").onchange = updateBotModalFieldsVisibility;
 
 document.getElementById("botModalSave").onclick = () => {
   const id = document.getElementById("bot-id").value;
@@ -1825,9 +1900,14 @@ document.getElementById("botModalSave").onclick = () => {
   const cfg = {
     id: id || newBotId(),
     name,
-    strategy: "EVEN_ODD",
     symbol: document.getElementById("bot-symbol").value,
+    tradeType: document.getElementById("bot-tradetype").value,
+    strategy: document.getElementById("bot-strategy").value,
     prediction: document.getElementById("bot-prediction").value,
+    directionOU: document.getElementById("bot-direction-ou").value,
+    directionMD: document.getElementById("bot-direction-md").value,
+    barrier: +document.getElementById("bot-barrier").value || 5,
+    analysisWindow: +document.getElementById("bot-analysis-window").value || 20,
     duration: +document.getElementById("bot-duration").value || 5,
     durationUnit: "t",
     initialStake: stakeVal,
@@ -1910,6 +1990,72 @@ function stopBot(botId, silent){
   renderBots();
 }
 
+/* ---- Analysis / strategy engine ---- */
+// Reads the real streamed last-digit history for a symbol (see updateTicker) and
+// summarizes it — this is the only thing "trend" and "reversal" strategies look at.
+function analyzeDigitWindow(symbol, windowSize){
+  const hist = (digitHistory[symbol] || []).slice(-Math.max(5, windowSize || 20));
+  const counts = new Array(10).fill(0);
+  let evenCount = 0, oddCount = 0, sum = 0;
+  hist.forEach(d => {
+    counts[d]++;
+    if (d % 2 === 0) evenCount++; else oddCount++;
+    sum += d;
+  });
+  let modeDigit = 0, modeCount = -1;
+  let leastDigit = 0, leastCount = Infinity;
+  counts.forEach((c, d) => {
+    if (c > modeCount) { modeCount = c; modeDigit = d; }
+    if (c < leastCount) { leastCount = c; leastDigit = d; }
+  });
+  const avg = hist.length ? sum / hist.length : 4.5;
+  return { sampleSize: hist.length, counts, evenCount, oddCount, avg, modeDigit, leastDigit };
+}
+
+const CONTRACT_LABELS = { DIGITEVEN:"Even", DIGITODD:"Odd", DIGITOVER:"Over", DIGITUNDER:"Under", DIGITMATCH:"Matches", DIGITDIFF:"Differs" };
+
+// Given a bot's config, decide exactly what to trade next: which contract_type and
+// (where relevant) which barrier digit. "fixed" just replays the saved settings.
+// "trend" and "reversal" read analyzeDigitWindow() and pick a side from real recent data.
+function decideBotSignal(bot){
+  const tradeType = bot.tradeType || "EVENODD";
+  const strategy = bot.strategy || "fixed";
+
+  if (strategy === "fixed") {
+    if (tradeType === "EVENODD") {
+      return { contract_type: bot.prediction, barrier: null, label: `${CONTRACT_LABELS[bot.prediction]} (fixed)` };
+    }
+    if (tradeType === "OVERUNDER") {
+      return { contract_type: bot.directionOU, barrier: bot.barrier, label: `${CONTRACT_LABELS[bot.directionOU]} ${bot.barrier} (fixed)` };
+    }
+    return { contract_type: bot.directionMD, barrier: bot.barrier, label: `${CONTRACT_LABELS[bot.directionMD]} ${bot.barrier} (fixed)` };
+  }
+
+  const stats = analyzeDigitWindow(bot.symbol, bot.analysisWindow);
+
+  if (tradeType === "EVENODD") {
+    const majority = stats.evenCount >= stats.oddCount ? "DIGITEVEN" : "DIGITODD";
+    const minority = majority === "DIGITEVEN" ? "DIGITODD" : "DIGITEVEN";
+    const pick = strategy === "trend" ? majority : minority;
+    return { contract_type: pick, barrier: null, label: `${CONTRACT_LABELS[pick]} (${strategy}, ${stats.sampleSize} ticks)` };
+  }
+
+  if (tradeType === "OVERUNDER") {
+    const recentHigh = stats.avg > 4.5;
+    const goOver = strategy === "trend" ? recentHigh : !recentHigh;
+    const barrier = goOver
+      ? Math.max(0, Math.min(8, Math.round(stats.avg) - 1))
+      : Math.max(1, Math.min(9, Math.round(stats.avg) + 1));
+    const contract_type = goOver ? "DIGITOVER" : "DIGITUNDER";
+    return { contract_type, barrier, label: `${CONTRACT_LABELS[contract_type]} ${barrier} (${strategy}, avg ${stats.avg.toFixed(1)})` };
+  }
+
+  // MATCHDIFFER
+  const contract_type = strategy === "trend" ? "DIGITMATCH" : "DIGITDIFF";
+  const barrier = strategy === "trend" ? stats.modeDigit : stats.modeDigit;
+  return { contract_type, barrier, label: `${CONTRACT_LABELS[contract_type]} ${barrier} (${strategy}, hot digit)` };
+}
+
 /* ---- Execution engine ---- */
 async function placeBotTrade(bot){
   if (bot.status !== "running") return;
@@ -1921,14 +2067,18 @@ async function placeBotTrade(bot){
   }
 
   const stake = bot.stats.currentStake || bot.initialStake;
+  const signal = decideBotSignal(bot);
+  bot._lastSignal = signal;
   bot._runningContract = true;
-  bot.stats.lastSignal = `${bot.prediction === "DIGITEVEN" ? "Even" : "Odd"} · stake ${fmt(stake)}`;
+  bot.stats.lastSignal = `${signal.label} · stake ${fmt(stake)}`;
   renderBots();
 
   const parameters = {
-    amount: stake, basis: "stake", contract_type: bot.prediction, currency: currentCurrency,
+    amount: stake, basis: "stake", contract_type: signal.contract_type, currency: currentCurrency,
     duration: bot.duration, duration_unit: "t", underlying_symbol: bot.symbol
   };
+  if (signal.barrier !== null && signal.barrier !== undefined) parameters.barrier = String(signal.barrier);
+
   const res = await send({ buy: 1, price: stake, parameters });
 
   if (res.error) {
@@ -2005,10 +2155,13 @@ function notifyBotEvent(bot, kind, message){
 
 const botTradeLog = [];
 function logBotTrade(bot, contract, profit, win){
+  const sig = bot._lastSignal;
+  const contractType = sig
+    ? `${CONTRACT_LABELS[sig.contract_type] || sig.contract_type}${sig.barrier != null ? " " + sig.barrier : ""}`
+    : (CONTRACT_LABELS[bot.prediction] || bot.prediction);
   botTradeLog.unshift({
     time: Date.now(), botName: bot.name, symbol: contract.symbol,
-    contractType: bot.prediction === "DIGITEVEN" ? "Even" : "Odd",
-    stake: contract.stake, profit, win,
+    contractType, stake: contract.stake, profit, win,
   });
   if (botTradeLog.length > 200) botTradeLog.pop();
   renderBotLog();
@@ -2054,13 +2207,15 @@ function renderBots(){
       ? `<button onclick="pauseBot('${bot.id}')">⏸ Pause</button><button class="danger" onclick="stopBot('${bot.id}')">⏹ Stop</button>`
       : `<button class="primary" onclick="resumeBot('${bot.id}')">▶ Resume</button><button class="danger" onclick="stopBot('${bot.id}')">⏹ Stop</button>`;
 
+    const tradeTypeLabel = { EVENODD:"Even/Odd", OVERUNDER:"Over/Under", MATCHDIFFER:"Match/Differ" }[bot.tradeType] || "Even/Odd";
+    const strategyLabel = { fixed:"Fixed", trend:"Trend", reversal:"Reversal" }[bot.strategy] || "Fixed";
     return `
     <div class="bot-card status-${bot.status}">
       <div class="accent-bar"></div>
       <div class="bot-card-head">
         <div>
           <h4>${bot.name}</h4>
-          <div class="sub">${symbolLabel(bot.symbol)} · ${bot.prediction === "DIGITEVEN" ? "Even" : "Odd"} · ${bot.duration} ticks</div>
+          <div class="sub">${symbolLabel(bot.symbol)} · ${tradeTypeLabel} · ${strategyLabel} · ${bot.duration} ticks</div>
         </div>
         <span class="status-pill ${bot.status}">${bot.status}</span>
       </div>
