@@ -113,6 +113,16 @@
   .bot-stats-mini .mini .v{font-family:'IBM Plex Mono',monospace;font-size:.92rem;font-weight:600;}
   .bot-last-signal{font-size:.74rem;color:var(--muted);margin-bottom:12px;}
   .bot-last-signal b{color:var(--text);}
+  .ai-panel{background:var(--panel-3);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:12px;}
+  .ai-panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+  .ai-status-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;display:inline-block;margin-right:6px;}
+  .ai-status-dot.green{background:var(--up);box-shadow:0 0 6px var(--up);}
+  .ai-status-dot.yellow{background:var(--warn);box-shadow:0 0 6px var(--warn);}
+  .ai-status-dot.red{background:var(--down);box-shadow:0 0 6px var(--down);}
+  .ai-status-dot.gray{background:var(--muted);}
+  .ai-decision-label{font-size:.72rem;font-weight:700;letter-spacing:.03em;text-transform:uppercase;}
+  .ai-confidence{font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--muted);}
+  .ai-reason{font-size:.72rem;color:var(--muted);line-height:1.4;}
   .bot-controls{display:flex;flex-wrap:wrap;gap:6px;}
   .bot-controls button{
     background:var(--panel-3);border:1px solid var(--border);color:var(--text);
@@ -907,6 +917,7 @@
                   <option value="fixed">Fixed Prediction</option>
                   <option value="trend">Follow Trend — bet with the recent pattern</option>
                   <option value="reversal">Reversal — bet against the recent pattern</option>
+                  <option value="ai">AI Analysis — multi-factor confidence scoring</option>
                 </select>
               </div>
               <div class="field" id="bot-field-prediction">
@@ -935,11 +946,43 @@
                 <input type="number" id="bot-barrier" value="5" min="0" max="9">
               </div>
               <div class="field" id="bot-field-window" style="display:none;">
-                <label>Analysis Window (recent ticks) <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0;">— used when Strategy is Trend/Reversal</span></label>
+                <label>Analysis Window (recent ticks) <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0;">— sample size used by Trend/Reversal/AI</span></label>
                 <input type="number" id="bot-analysis-window" value="20" min="5" max="100">
               </div>
+
+              <div id="bot-field-ai-settings" style="display:none;">
+                <div class="modal-subhead">AI Analysis Settings</div>
+                <div class="duo">
+                  <div class="field">
+                    <label>Signal Mode</label>
+                    <select id="bot-ai-mode">
+                      <option value="trend">Trend — bet with the statistical deviation</option>
+                      <option value="reversion">Reversion — bet against the deviation</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label>Min Confidence to Trade</label>
+                    <input type="number" id="bot-ai-confidence" value="0.65" min="0.1" max="0.9" step="0.05">
+                  </div>
+                </div>
+                <div class="duo">
+                  <div class="field">
+                    <label>Min Sample Size (ticks)</label>
+                    <input type="number" id="bot-ai-minsample" value="30" min="10" max="100">
+                  </div>
+                  <div class="field">
+                    <label>Re-check Interval (seconds)</label>
+                    <input type="number" id="bot-ai-recheck" value="5" min="1" max="60">
+                  </div>
+                </div>
+                <div class="toggle-row">
+                  <label>Block trades during high volatility</label>
+                  <label class="switch"><input type="checkbox" id="bot-ai-blockvol" checked><span class="slider"></span></label>
+                </div>
+              </div>
+
               <div class="payout-preview" style="margin-bottom:16px;">
-                <b style="color:var(--text);">Fixed</b> always trades your chosen prediction. <b style="color:var(--text);">Follow Trend</b> reads the last N ticks of this symbol and bets with whichever side (even/odd, high/low digits, hottest digit) has occurred most. <b style="color:var(--text);">Reversal</b> does the opposite — betting the recent pattern won't continue. Synthetic index digits are close to random, so no strategy guarantees wins — this changes which signal drives entries, not the underlying odds.
+                <b style="color:var(--text);">Fixed</b> always trades your chosen prediction. <b style="color:var(--text);">Follow Trend</b> reads the last N ticks of this symbol and bets with whichever side (even/odd, high/low digits, hottest digit) has occurred most. <b style="color:var(--text);">Reversal</b> does the opposite — betting the recent pattern won't continue. <b style="color:var(--text);">AI Analysis</b> scores the deviation from expected uniform distribution (a z-score), gates on sample size and volatility, and only trades — as BUY/STRONG_BUY — once confidence clears your threshold; otherwise it holds at WAIT and rechecks on the interval above. It runs entirely on the live tick/digit data already streaming in this page — no external calls. Synthetic index digits are engineered to be close to uniformly random, so no strategy — including this one — guarantees wins; "WAIT" is a normal and often frequent outcome.
               </div>
 
               <div class="duo">
@@ -1814,7 +1857,7 @@ function persistBots(){
     id: b.id, name: b.name, symbol: b.symbol,
     tradeType: b.tradeType, strategy: b.strategy,
     prediction: b.prediction, directionOU: b.directionOU, directionMD: b.directionMD,
-    barrier: b.barrier, analysisWindow: b.analysisWindow,
+    barrier: b.barrier, analysisWindow: b.analysisWindow, aiConfig: b.aiConfig,
     duration: b.duration, durationUnit: b.durationUnit, initialStake: b.initialStake,
     martingaleEnabled: b.martingaleEnabled, martingaleMultiplier: b.martingaleMultiplier, martingaleMax: b.martingaleMax,
     takeProfit: b.takeProfit, stopLoss: b.stopLoss, maxTrades: b.maxTrades,
@@ -1844,6 +1887,7 @@ function updateBotModalFieldsVisibility(){
   document.getElementById("bot-field-direction-md").style.display = (tradeType === "MATCHDIFFER") ? "block" : "none";
   document.getElementById("bot-field-barrier").style.display = (tradeType !== "EVENODD") ? "block" : "none";
   document.getElementById("bot-field-window").style.display = (strategy !== "fixed") ? "block" : "none";
+  document.getElementById("bot-field-ai-settings").style.display = (strategy === "ai") ? "block" : "none";
 
   // When the strategy decides the side dynamically, the manual prediction/direction pickers
   // and the fixed barrier no longer apply — grey them out rather than hide, so it's clear why.
@@ -1868,6 +1912,12 @@ function openBotModal(botId){
   document.getElementById("bot-direction-md").value = bot ? (bot.directionMD || "DIGITMATCH") : "DIGITMATCH";
   document.getElementById("bot-barrier").value = bot && bot.barrier != null ? bot.barrier : 5;
   document.getElementById("bot-analysis-window").value = bot && bot.analysisWindow != null ? bot.analysisWindow : 20;
+  const ai = (bot && bot.aiConfig) || {};
+  document.getElementById("bot-ai-mode").value = ai.mode || "trend";
+  document.getElementById("bot-ai-confidence").value = ai.confidenceThreshold != null ? ai.confidenceThreshold : 0.65;
+  document.getElementById("bot-ai-minsample").value = ai.minSampleSize != null ? ai.minSampleSize : 30;
+  document.getElementById("bot-ai-recheck").value = ai.recheckSeconds != null ? ai.recheckSeconds : 5;
+  document.getElementById("bot-ai-blockvol").checked = ai.blockHighVol !== false;
   document.getElementById("bot-duration").value = bot ? bot.duration : 5;
   document.getElementById("bot-stake").value = bot ? bot.initialStake : 1;
   document.getElementById("bot-martingale-enabled").checked = bot ? bot.martingaleEnabled : false;
@@ -1908,6 +1958,13 @@ document.getElementById("botModalSave").onclick = () => {
     directionMD: document.getElementById("bot-direction-md").value,
     barrier: +document.getElementById("bot-barrier").value || 5,
     analysisWindow: +document.getElementById("bot-analysis-window").value || 20,
+    aiConfig: {
+      mode: document.getElementById("bot-ai-mode").value,
+      confidenceThreshold: Math.min(0.9, Math.max(0.1, parseFloat(document.getElementById("bot-ai-confidence").value) || 0.65)),
+      minSampleSize: Math.max(10, +document.getElementById("bot-ai-minsample").value || 30),
+      recheckSeconds: Math.max(1, +document.getElementById("bot-ai-recheck").value || 5),
+      blockHighVol: document.getElementById("bot-ai-blockvol").checked,
+    },
     duration: +document.getElementById("bot-duration").value || 5,
     durationUnit: "t",
     initialStake: stakeVal,
@@ -1969,6 +2026,7 @@ function pauseBot(botId){
   const bot = bots.find(b => b.id === botId);
   if (!bot || bot.status !== "running") return;
   bot.status = "paused";
+  if (bot._aiRecheckTimeout) { clearTimeout(bot._aiRecheckTimeout); bot._aiRecheckTimeout = null; }
   notifyBotEvent(bot, "warn", "Bot paused");
   renderBots();
 }
@@ -1986,6 +2044,7 @@ function stopBot(botId, silent){
   const bot = bots.find(b => b.id === botId);
   if (!bot) return;
   bot.status = "stopped";
+  if (bot._aiRecheckTimeout) { clearTimeout(bot._aiRecheckTimeout); bot._aiRecheckTimeout = null; }
   if (!silent) notifyBotEvent(bot, "info", "Bot stopped");
   renderBots();
 }
@@ -2056,6 +2115,146 @@ function decideBotSignal(bot){
   return { contract_type, barrier, label: `${CONTRACT_LABELS[contract_type]} ${barrier} (${strategy}, hot digit)` };
 }
 
+/* ---- AI analysis engine (client-side, statistical — no external API calls) ----
+   This mirrors the shape of a "real" AI trading engine's decision object (regime,
+   scenarios, confidence, decision, trade_allowed, reasons) but every number in it
+   is computed directly from the real ticks this page has already streamed in via
+   tickHistory/digitHistory. It never fabricates data: if there isn't enough of a
+   sample yet, it reports INSUFFICIENT data quality and refuses to trade rather
+   than guessing. */
+
+// Volatility regime from real streamed price ticks (percent stdev of returns).
+function computeVolatilityRegime(symbol){
+  const hist = tickHistory[symbol] || [];
+  if (hist.length < 6) return { regime: "UNKNOWN", stdevPct: 0, sample: hist.length };
+  const returns = [];
+  for (let i = 1; i < hist.length; i++) {
+    if (hist[i - 1]) returns.push((hist[i] - hist[i - 1]) / hist[i - 1]);
+  }
+  const mean = returns.reduce((a, b) => a + b, 0) / returns.length;
+  const variance = returns.reduce((a, b) => a + (b - mean) ** 2, 0) / returns.length;
+  const stdevPct = Math.sqrt(variance) * 100;
+  let regime = "LOW";
+  if (stdevPct > 0.15) regime = "HIGH";
+  else if (stdevPct > 0.05) regime = "MEDIUM";
+  return { regime, stdevPct, sample: returns.length };
+}
+
+// z-score of an observed binomial count against its expected count under probability p.
+function zScoreBinomial(observed, n, p){
+  if (n <= 0) return 0;
+  const expected = n * p;
+  const sd = Math.sqrt(n * p * (1 - p)) || 1;
+  return (observed - expected) / sd;
+}
+
+// Runs one full analysis cycle for a bot and returns a structured decision object.
+// This is the single source of truth the UI badge/reasoning panel renders from.
+function runAIAnalysis(bot){
+  const symbol = bot.symbol;
+  const windowSize = bot.analysisWindow || 20;
+  const cfg = bot.aiConfig || {};
+  const mode = cfg.mode || "trend";
+  const minSample = cfg.minSampleSize || 30;
+  const confThreshold = cfg.confidenceThreshold != null ? cfg.confidenceThreshold : 0.65;
+  const blockHighVol = cfg.blockHighVol !== false;
+
+  const hist = (digitHistory[symbol] || []).slice(-Math.max(windowSize, minSample));
+  const n = hist.length;
+  const counts = new Array(10).fill(0);
+  hist.forEach(d => counts[d]++);
+  const vol = computeVolatilityRegime(symbol);
+
+  const analysis = {
+    timestamp: new Date().toISOString(), symbol,
+    sample_size: n, market_regime: vol.regime, volatility_stdev_pct: Number(vol.stdevPct.toFixed(4)),
+    scenarios: [], bullish_factors: [], risk_factors: [],
+    confidence: 0, decision: "WAIT", trade_allowed: false,
+    reasons: [], rejection_reasons: [], trade: null,
+    data_quality: n >= minSample ? "OK" : "INSUFFICIENT",
+  };
+
+  if (n < minSample) {
+    analysis.reasons.push(`Only ${n}/${minSample} digits collected for ${symbol} yet — waiting for more real data before analyzing.`);
+    analysis.rejection_reasons.push("INSUFFICIENT_SAMPLE");
+    return analysis;
+  }
+  if (vol.regime === "HIGH" && blockHighVol) {
+    analysis.decision = "NO_TRADE";
+    analysis.risk_factors.push(`High volatility regime detected (${vol.stdevPct.toFixed(3)}% stdev of returns) — skipping this cycle.`);
+    analysis.rejection_reasons.push("HIGH_VOLATILITY");
+    return analysis;
+  }
+
+  const tradeType = bot.tradeType || "EVENODD";
+  let candidate;
+
+  if (tradeType === "EVENODD") {
+    const evenCount = hist.filter(d => d % 2 === 0).length;
+    const z = zScoreBinomial(evenCount, n, 0.5);
+    const deviationSide = z >= 0 ? "DIGITEVEN" : "DIGITODD";
+    const oppositeSide = deviationSide === "DIGITEVEN" ? "DIGITODD" : "DIGITEVEN";
+    const pick = mode === "trend" ? deviationSide : oppositeSide;
+    candidate = { contract_type: pick, barrier: null, z: Math.abs(z),
+      label: `${CONTRACT_LABELS[pick]} (AI ${mode}, ${n} ticks)` };
+    analysis.bullish_factors.push(`Even count ${evenCount}/${n} vs expected ${(n*0.5).toFixed(1)} (z=${z.toFixed(2)})`);
+  } else if (tradeType === "OVERUNDER") {
+    let best = null;
+    for (let b = 0; b <= 8; b++) {
+      const overCount = hist.filter(d => d > b).length;
+      const p = (9 - b) / 10;
+      const z = zScoreBinomial(overCount, n, p);
+      if (!best || Math.abs(z) > Math.abs(best.z)) best = { b, z, overCount };
+    }
+    const overFavored = best.z >= 0;
+    const deviationType = overFavored ? "DIGITOVER" : "DIGITUNDER";
+    const oppositeType = overFavored ? "DIGITUNDER" : "DIGITOVER";
+    const pick = mode === "trend" ? deviationType : oppositeType;
+    candidate = { contract_type: pick, barrier: best.b, z: Math.abs(best.z),
+      label: `${CONTRACT_LABELS[pick]} ${best.b} (AI ${mode}, z=${best.z.toFixed(2)})` };
+    analysis.bullish_factors.push(`Barrier ${best.b} split shows the strongest deviation from uniform (z=${best.z.toFixed(2)})`);
+  } else {
+    let hot = 0, hotCount = -1, cold = 0, coldCount = Infinity;
+    counts.forEach((c, d) => { if (c > hotCount) { hotCount = c; hot = d; } if (c < coldCount) { coldCount = c; cold = d; } });
+    const zHot = zScoreBinomial(hotCount, n, 0.1);
+    const pick = mode === "trend" ? "DIGITMATCH" : "DIGITDIFF";
+    const barrier = mode === "trend" ? hot : cold;
+    candidate = { contract_type: pick, barrier, z: Math.abs(zHot),
+      label: `${CONTRACT_LABELS[pick]} ${barrier} (AI ${mode}, hot=${hot} ${hotCount}/${n})` };
+    analysis.bullish_factors.push(`Digit ${hot} occurred ${hotCount}/${n} times vs expected ${(n*0.1).toFixed(1)} (z=${zHot.toFixed(2)})`);
+  }
+
+  analysis.scenarios.push({ name: "EDGE_DETECTED", note: `Observed deviation z=${candidate.z.toFixed(2)} over the last ${n} digits.` });
+  analysis.scenarios.push({ name: "RANDOM_NULL", note: "Digits are engineered to be close to uniformly random — this deviation may just be noise." });
+  analysis.risk_factors.push("Synthetic index digits are designed by the provider to be close to uniformly random; any statistical edge is small, transient, and can reverse without warning.");
+
+  // z=1 (barely above noise) -> ~0 confidence, z=5 (strong deviation) -> capped at 0.9.
+  const confidence = Math.max(0, Math.min(0.9, (candidate.z - 1) / 4));
+  analysis.confidence = Number(confidence.toFixed(2));
+
+  if (confidence >= confThreshold) {
+    analysis.decision = confidence > 0.8 ? "STRONG_BUY" : "BUY";
+    analysis.trade_allowed = true;
+    analysis.trade = candidate;
+    analysis.reasons.push(`Confidence ${(confidence*100).toFixed(0)}% ≥ threshold ${(confThreshold*100).toFixed(0)}% — ${candidate.label}`);
+  } else {
+    analysis.decision = "WAIT";
+    analysis.trade_allowed = false;
+    analysis.rejection_reasons.push("LOW_CONFIDENCE");
+    analysis.reasons.push(`Confidence ${(confidence*100).toFixed(0)}% below threshold ${(confThreshold*100).toFixed(0)}% — holding, will re-check.`);
+  }
+  return analysis;
+}
+
+// GREEN = eligible, YELLOW = waiting/reviewing, RED = blocked/high risk, GRAY = insufficient data
+function aiStatusColor(analysis){
+  if (!analysis) return "gray";
+  if (analysis.data_quality === "INSUFFICIENT") return "gray";
+  if (analysis.decision === "NO_TRADE") return "red";
+  if (analysis.trade_allowed) return "green";
+  return "yellow";
+}
+
 /* ---- Execution engine ---- */
 async function placeBotTrade(bot){
   if (bot.status !== "running") return;
@@ -2066,10 +2265,24 @@ async function placeBotTrade(bot){
     return;
   }
 
+  let signal;
+  if (bot.strategy === "ai") {
+    const analysis = runAIAnalysis(bot);
+    bot._lastAnalysis = analysis;
+    renderBots();
+    if (!analysis.trade_allowed) {
+      bot.stats.lastSignal = `${analysis.decision} — ${analysis.reasons[0] || "no qualifying signal"}`;
+      const delaySec = (bot.aiConfig && bot.aiConfig.recheckSeconds) || 5;
+      bot._aiRecheckTimeout = setTimeout(() => placeBotTrade(bot), delaySec * 1000);
+      return;
+    }
+    signal = analysis.trade;
+  } else {
+    signal = decideBotSignal(bot);
+  }
+
   const stake = bot.stats.currentStake || bot.initialStake;
-  const signal = decideBotSignal(bot);
   bot._lastSignal = signal;
-  bot._runningContract = true;
   bot.stats.lastSignal = `${signal.label} · stake ${fmt(stake)}`;
   renderBots();
 
@@ -2227,6 +2440,7 @@ function renderBots(){
         <div class="mini"><div class="l">Mtg. Level</div><div class="v">${s.martingaleLevel}</div></div>
         <div class="mini"><div class="l">Running</div><div class="v">${bot.status === "running" ? formatRunningTime(s.startedAt) : "—"}</div></div>
       </div>
+      ${bot.strategy === "ai" ? renderAiPanel(bot) : ""}
       <div class="bot-last-signal">Last signal: <b>${s.lastSignal || "—"}</b></div>
       <div class="bot-controls">
         ${controls}
@@ -2236,6 +2450,24 @@ function renderBots(){
       </div>
     </div>`;
   }).join("");
+}
+
+// Structured AI decision readout: regime, confidence, and the concrete reason for
+// the current WAIT/BUY/NO_TRADE call — the same fields runAIAnalysis() computed.
+function renderAiPanel(bot){
+  const a = bot._lastAnalysis;
+  if (!a) {
+    return `<div class="ai-panel"><div class="ai-reason"><span class="ai-status-dot gray"></span>No analysis run yet — starts on Start/Resume.</div></div>`;
+  }
+  const color = aiStatusColor(a);
+  const reason = a.reasons[0] || a.risk_factors[0] || "—";
+  return `<div class="ai-panel">
+    <div class="ai-panel-head">
+      <div><span class="ai-status-dot ${color}"></span><span class="ai-decision-label">${a.decision}</span></div>
+      <span class="ai-confidence">conf ${(a.confidence*100).toFixed(0)}% · ${a.market_regime} · n=${a.sample_size}</span>
+    </div>
+    <div class="ai-reason">${reason}</div>
+  </div>`;
 }
 
 function populateBotSymbolSelect(){
