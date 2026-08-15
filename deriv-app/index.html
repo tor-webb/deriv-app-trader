@@ -431,6 +431,46 @@
     display:flex;align-items:center;justify-content:center;color:var(--muted);
   }
   .lp-risk{font-size:.72rem;color:var(--muted);line-height:1.6;max-width:900px;margin-top:14px;}
+
+  /* ---------- AI Trade Hub (Trade page only) ---------- */
+  .hub-market-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-bottom:18px;}
+  .hub-market-card{
+    background:var(--panel-2);border:1px solid var(--border);border-radius:12px;padding:16px 18px;
+    box-shadow:var(--shadow-sm);cursor:pointer;transition:border-color .15s, transform .15s;
+  }
+  .hub-market-card:hover{transform:translateY(-2px);border-color:#2A3442;}
+  .hub-market-card.active{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent);}
+  .hub-market-card h4{margin:0 0 4px;font-family:'Space Grotesk',sans-serif;font-size:.98rem;}
+  .hub-market-card .price{font-family:'IBM Plex Mono',monospace;font-size:1.15rem;font-weight:600;margin-bottom:6px;}
+  .hub-market-card .status{font-size:.68rem;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:10px;}
+  .hub-market-card.decision-green .status{color:var(--up);}
+  .hub-market-card.decision-yellow .status{color:var(--warn);}
+  .hub-market-card.decision-red .status{color:var(--down);}
+  .hub-market-card button{
+    width:100%;background:var(--panel-3);color:var(--accent);border:1px solid var(--border);
+    padding:8px 0;border-radius:6px;font-size:.78rem;font-weight:600;cursor:pointer;
+  }
+  .hub-market-card button:hover{border-color:var(--accent);}
+
+  .hub-layout{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start;}
+  @media(max-width:980px){.hub-layout{grid-template-columns:1fr;}}
+  .hub-subhead{font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:14px 0 10px;display:flex;align-items:center;justify-content:space-between;}
+  .hub-sample{font-family:'IBM Plex Mono',monospace;font-weight:400;text-transform:none;letter-spacing:0;}
+  .hub-recent-digits{display:flex;flex-wrap:wrap;gap:6px;}
+  .hub-recent-digits span{
+    width:30px;height:30px;border-radius:6px;background:var(--panel-3);border:1px solid var(--border);
+    display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:.8rem;color:var(--muted);
+  }
+  .hub-contract-row{display:flex;flex-wrap:wrap;gap:8px;}
+  .hub-contract-btn{
+    background:var(--panel-3);border:1px solid var(--border);color:var(--text);
+    padding:9px 14px;border-radius:6px;font-size:.8rem;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;
+  }
+  .hub-contract-btn:hover{border-color:#2A3442;}
+  .hub-contract-btn.active{background:var(--accent-dim);color:var(--accent);border-color:var(--accent);}
+  .hub-action-row{display:flex;gap:10px;margin-top:16px;}
+  .hub-action-row .btn, .hub-action-row .btn-ghost{flex:1;}
+  #hub-auto-btn.on{background:var(--accent-dim);color:var(--accent);border-color:var(--accent);}
 </style>
 </head>
 <body>
@@ -757,6 +797,104 @@
                   <button class="btn-up" id="mult-up" disabled>▲ Up</button>
                   <button class="btn-down" id="mult-down" disabled>▼ Down</button>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ================= AI TRADE HUB (new — Trade page only) ================= -->
+          <div class="section-title" style="margin-top:20px;">
+            AI Trade Hub
+            <span class="hint">Analyzes live digit/volatility data across markets and can auto-execute on high-confidence entries</span>
+          </div>
+
+          <div class="hub-market-grid" id="hubMarketGrid"></div>
+
+          <div class="hub-layout">
+            <div class="card">
+              <div class="section-title" style="margin-bottom:2px;">Last Digit — <span id="hubSymbolLabel">R_100</span></div>
+              <div class="last-digit-display" id="hubLastDigit">—</div>
+
+              <div class="hub-subhead">Digit Analytics <span id="hubSampleLabel" class="hub-sample">Sample: 0</span></div>
+              <div class="digit-bars" id="hubDigitBars"></div>
+
+              <div class="hub-subhead" style="margin-top:18px;">Recent Digits</div>
+              <div class="hub-recent-digits" id="hubRecentDigits"></div>
+            </div>
+
+            <div class="card">
+              <div class="hub-subhead" style="margin-top:0;">Contract</div>
+              <div class="hub-contract-row" id="hubContractRow">
+                <button class="hub-contract-btn active" data-contract="DIGITEVEN">Even</button>
+                <button class="hub-contract-btn" data-contract="DIGITODD">Odd</button>
+                <button class="hub-contract-btn" data-contract="DIGITOVER">Over</button>
+                <button class="hub-contract-btn" data-contract="DIGITUNDER">Under</button>
+                <button class="hub-contract-btn" data-contract="DIGITMATCH">Matches</button>
+                <button class="hub-contract-btn" data-contract="DIGITDIFF">Differs</button>
+              </div>
+              <div class="field" id="hub-field-barrier" style="display:none;margin-top:10px;">
+                <label>Barrier / Target digit (0–9)</label>
+                <input type="number" id="hub-barrier" value="5" min="0" max="9">
+              </div>
+
+              <div class="hub-subhead">Stake & Martingale Settings</div>
+              <div class="duo">
+                <div class="field">
+                  <label>Base Stake (<span class="digit-cur">USD</span>)</label>
+                  <input type="number" id="hub-stake" value="1" min="0.35" step="0.01">
+                </div>
+                <div class="field">
+                  <label>Multiplier</label>
+                  <input type="number" id="hub-mart-mult" value="2" min="1.1" step="0.1">
+                </div>
+              </div>
+              <div class="duo">
+                <div class="field">
+                  <label>Max Martingale Levels</label>
+                  <input type="number" id="hub-mart-max" value="5" min="1" max="20">
+                </div>
+                <div class="field">
+                  <label>Ticks per trade</label>
+                  <input type="number" id="hub-ticks" value="5" min="1" max="10">
+                </div>
+              </div>
+              <div class="payout-preview" id="hubMartLevelInfo">Current Martingale Level: 0 · Next Stake: $1.00</div>
+
+              <div class="hub-subhead">AI Analysis Settings</div>
+              <div class="duo">
+                <div class="field">
+                  <label>Signal Mode</label>
+                  <select id="hub-mode">
+                    <option value="trend">Trend</option>
+                    <option value="reversion">Reversion</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>Min Confidence</label>
+                  <input type="number" id="hub-confidence" value="0.8" min="0.1" max="0.9" step="0.05">
+                </div>
+              </div>
+              <div class="duo">
+                <div class="field">
+                  <label>Min Sample Size</label>
+                  <input type="number" id="hub-minsample" value="30" min="10" max="100">
+                </div>
+                <div class="field">
+                  <label>Re-check Interval (sec)</label>
+                  <input type="number" id="hub-recheck" value="5" min="1" max="60">
+                </div>
+              </div>
+
+              <div class="hub-action-row">
+                <button class="btn" id="hub-analyze-btn" disabled>🔍 Analyze with AI</button>
+                <button class="btn btn-ghost" id="hub-auto-btn">🤖 Auto: OFF</button>
+              </div>
+
+              <div class="ai-panel" id="hubStatusPanel" style="margin-top:14px;">
+                <div class="ai-panel-head">
+                  <div><span class="ai-status-dot gray" id="hubStatusDot"></span><span class="ai-decision-label" id="hubStatusLabel">IDLE</span></div>
+                  <span class="ai-confidence" id="hubStatusTime">—</span>
+                </div>
+                <div class="ai-reason" id="hubStatusDetail">Waiting for analysis...</div>
               </div>
             </div>
           </div>
@@ -1344,6 +1482,7 @@ function handleMessage(data){
     if (wasOpen && c.is_sold) {
       notifyTradeClosed(openContracts[c.contract_id]);
       if (botContractMap[c.contract_id]) onBotContractSettled(botContractMap[c.contract_id], openContracts[c.contract_id]);
+      if (hubContractMap[c.contract_id]) { delete hubContractMap[c.contract_id]; onHubContractSettled(openContracts[c.contract_id]); }
     }
     renderAll();
   }
@@ -1437,21 +1576,24 @@ function updateTicker(symbol, price){
   }
 
   const item = document.getElementById(`ticker-${symbol}`);
-  if (!item) return;
-  const priceEl = item.querySelector(".price");
-  const up = price >= prev;
-  priceEl.textContent = Number(price).toFixed(2);
-  priceEl.className = "price num " + (up ? "up-color" : "down-color");
+  if (item) {
+    const priceEl = item.querySelector(".price");
+    const up = price >= prev;
+    priceEl.textContent = Number(price).toFixed(2);
+    priceEl.className = "price num " + (up ? "up-color" : "down-color");
 
-  const min = Math.min(...hist), max = Math.max(...hist), range = (max - min) || 1;
-  const pts = hist.map((p, i) => {
-    const x = (i / (hist.length - 1 || 1)) * 44;
-    const y = 18 - ((p - min) / range) * 16;
-    return `${x.toFixed(1)},${y.toFixed(1)}`;
-  }).join(" ");
-  const poly = item.querySelector("polyline");
-  poly.setAttribute("points", pts);
-  poly.setAttribute("stroke", up ? "var(--up)" : "var(--down)");
+    const min = Math.min(...hist), max = Math.max(...hist), range = (max - min) || 1;
+    const pts = hist.map((p, i) => {
+      const x = (i / (hist.length - 1 || 1)) * 44;
+      const y = 18 - ((p - min) / range) * 16;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    }).join(" ");
+    const poly = item.querySelector("polyline");
+    poly.setAttribute("points", pts);
+    poly.setAttribute("stroke", up ? "var(--up)" : "var(--down)");
+  }
+
+  updateHubCardPrice(symbol, price);
 }
 
 function renderDigitBars(){
@@ -1544,6 +1686,8 @@ document.querySelectorAll(".subtab").forEach(tab => {
 function enableTradeButtons(){
   ["rf-rise","rf-fall","mult-up","mult-down"].forEach(id => document.getElementById(id).disabled = false);
   document.querySelectorAll(".digit-btn").forEach(b => b.disabled = false);
+  const hubBtn = document.getElementById("hub-analyze-btn");
+  if (hubBtn) hubBtn.disabled = false;
 }
 
 async function placeRiseFall(direction){
@@ -1585,9 +1729,10 @@ async function placeDigit(contractType, symbol, ticks, stake, barrier){
     console.error("Digit trade error — full response:", JSON.stringify(res.error, null, 2));
     console.error("Request sent:", JSON.stringify({ buy: 1, price: stake, parameters }, null, 2));
     alert(res.error.message + (res.error.details ? "\n\nDetails: " + JSON.stringify(res.error.details) : ""));
-    return;
+    return null;
   }
   if (res.buy) openContracts[res.buy.contract_id] = { ...(openContracts[res.buy.contract_id]||{}), symbol, contractType, isDigit: true };
+  return res;
 }
 
 document.getElementById("rf-rise").onclick = () => placeRiseFall("CALL");
@@ -2490,10 +2635,262 @@ loadBots();
 populateBotSymbolSelect();
 renderBots();
 
+/* ================= AI TRADE HUB (Trade page only) =================
+   Manual-trigger + auto-mode UI for the exact same client-side statistical
+   engine already used by AI-strategy bots (runAIAnalysis / placeDigit /
+   digitHistory / tickHistory). No new data sources, no external calls —
+   this only adds a live trigger + panel on top of what already exists. */
+
+const CONTRACT_TO_TRADETYPE = {
+  DIGITEVEN: "EVENODD", DIGITODD: "EVENODD",
+  DIGITOVER: "OVERUNDER", DIGITUNDER: "OVERUNDER",
+  DIGITMATCH: "MATCHDIFFER", DIGITDIFF: "MATCHDIFFER",
+};
+
+let hubState = {
+  symbol: "R_100",
+  contract: "DIGITEVEN",
+  barrier: 5,
+  auto: false,
+  status: "IDLE",        // IDLE | ANALYZING | WAITING | TRADING
+  martLevel: 0,
+  lastAnalysis: null,
+  autoTimer: null,
+  cardStatus: {},         // symbol -> "WAITING" | "GREEN" | "YELLOW" | "RED" | "GRAY"
+};
+const hubContractMap = {}; // contract_id -> true, mirrors botContractMap for settlement routing
+
+function hubGetField(id){ return document.getElementById(id); }
+
+function hubBuildPseudoBot(symbol){
+  return {
+    symbol,
+    tradeType: CONTRACT_TO_TRADETYPE[hubState.contract] || "EVENODD",
+    analysisWindow: Math.max(20, +hubGetField("hub-minsample").value || 30),
+    aiConfig: {
+      mode: hubGetField("hub-mode").value,
+      confidenceThreshold: Math.min(0.9, Math.max(0.1, parseFloat(hubGetField("hub-confidence").value) || 0.8)),
+      minSampleSize: Math.max(10, +hubGetField("hub-minsample").value || 30),
+      recheckSeconds: Math.max(1, +hubGetField("hub-recheck").value || 5),
+      blockHighVol: true,
+    },
+  };
+}
+
+/* ---- Market cards ---- */
+function initHubMarketCards(){
+  const grid = document.getElementById("hubMarketGrid");
+  if (!grid) return;
+  grid.innerHTML = SYMBOLS.map(s => `
+    <div class="hub-market-card" id="hub-mkt-${s.code}" data-symbol="${s.code}">
+      <h4>${s.name.replace(" Index","")}</h4>
+      <div class="price num" id="hub-mkt-price-${s.code}">—</div>
+      <div class="status" id="hub-mkt-status-${s.code}">WAITING</div>
+      <button data-symbol="${s.code}">🔍 Analyze</button>
+    </div>`).join("");
+  grid.querySelectorAll(".hub-market-card").forEach(card => {
+    card.addEventListener("click", (e) => {
+      const sym = card.dataset.symbol;
+      hubSelectSymbol(sym);
+      if (e.target.tagName === "BUTTON") analyzeHubMarket(sym);
+    });
+  });
+  hubHighlightActiveCard();
+}
+
+function hubHighlightActiveCard(){
+  document.querySelectorAll(".hub-market-card").forEach(c => c.classList.toggle("active", c.dataset.symbol === hubState.symbol));
+}
+
+function updateHubCardPrice(symbol, price){
+  const el = document.getElementById(`hub-mkt-price-${symbol}`);
+  if (el) el.textContent = Number(price).toFixed(2);
+}
+
+function hubSelectSymbol(symbol){
+  hubState.symbol = symbol;
+  document.getElementById("hubSymbolLabel").textContent = symbol;
+  hubHighlightActiveCard();
+  renderHubDigitPanel();
+}
+
+/* ---- Contract selection ---- */
+function hubSelectContract(type){
+  hubState.contract = type;
+  document.querySelectorAll(".hub-contract-btn").forEach(b => b.classList.toggle("active", b.dataset.contract === type));
+  const needsBarrier = type === "DIGITOVER" || type === "DIGITUNDER" || type === "DIGITMATCH" || type === "DIGITDIFF";
+  document.getElementById("hub-field-barrier").style.display = needsBarrier ? "block" : "none";
+}
+document.querySelectorAll(".hub-contract-btn").forEach(btn => {
+  btn.addEventListener("click", () => hubSelectContract(btn.dataset.contract));
+});
+document.getElementById("hub-barrier")?.addEventListener("input", (e) => { hubState.barrier = +e.target.value || 0; });
+
+/* ---- Digit panel (mirrors the Digits page renderer, scoped to the hub's own symbol) ---- */
+function renderHubDigitPanel(){
+  const hist = digitHistory[hubState.symbol] || [];
+  const last = hist.length ? hist[hist.length - 1] : "—";
+  document.getElementById("hubLastDigit").textContent = last;
+  document.getElementById("hubSampleLabel").textContent = `Sample: ${hist.length}`;
+
+  const counts = new Array(10).fill(0);
+  hist.forEach(d => counts[d]++);
+  const max = Math.max(...counts, 1);
+  const wrap = document.getElementById("hubDigitBars");
+  wrap.innerHTML = "";
+  counts.forEach((c, d) => {
+    const pct = hist.length ? Math.round((c / hist.length) * 100) : 0;
+    const h = Math.round((c / max) * 100);
+    const col = document.createElement("div");
+    col.className = "digit-bar-wrap";
+    col.innerHTML = `<div style="font-size:.65rem;color:var(--muted);">${pct}%</div>
+      <div class="digit-bar" style="height:${h}%"></div>
+      <div class="digit-bar-label">${d}</div>`;
+    wrap.appendChild(col);
+  });
+
+  const recentWrap = document.getElementById("hubRecentDigits");
+  recentWrap.innerHTML = hist.slice(-14).map(d => `<span>${d}</span>`).join("");
+}
+
+/* ---- Status panel + market card status ---- */
+function renderHubStatus(){
+  const dot = document.getElementById("hubStatusDot");
+  const label = document.getElementById("hubStatusLabel");
+  const detail = document.getElementById("hubStatusDetail");
+  const time = document.getElementById("hubStatusTime");
+  const a = hubState.lastAnalysis;
+
+  label.textContent = hubState.status;
+  time.textContent = a ? new Date().toLocaleTimeString() : "—";
+  detail.textContent = a ? (a.reasons[0] || a.risk_factors[0] || "—") : "Waiting for analysis...";
+
+  const color = hubState.status === "TRADING" ? "green"
+    : hubState.status === "ANALYZING" ? "yellow"
+    : a ? aiStatusColor(a) : "gray";
+  dot.className = "ai-status-dot " + color;
+
+  const cardStatusEl = document.getElementById(`hub-mkt-status-${hubState.symbol}`);
+  const cardEl = document.getElementById(`hub-mkt-${hubState.symbol}`);
+  if (cardStatusEl) cardStatusEl.textContent = hubState.status;
+  if (cardEl) {
+    cardEl.classList.remove("decision-green", "decision-yellow", "decision-red");
+    if (color === "green") cardEl.classList.add("decision-green");
+    else if (color === "yellow") cardEl.classList.add("decision-yellow");
+    else if (color === "red") cardEl.classList.add("decision-red");
+  }
+}
+
+function renderHubMartInfo(){
+  const stake = +hubGetField("hub-stake").value || 1;
+  const mult = +hubGetField("hub-mart-mult").value || 2;
+  const max = +hubGetField("hub-mart-max").value || 5;
+  const level = Math.min(hubState.martLevel, max);
+  const nextStake = level === 0 ? stake : +(stake * Math.pow(mult, level)).toFixed(2);
+  document.getElementById("hubMartLevelInfo").textContent =
+    `Current Martingale Level: ${level} / ${max} · Next Stake: $${nextStake.toFixed(2)}`;
+}
+["hub-stake","hub-mart-mult","hub-mart-max"].forEach(id => {
+  document.getElementById(id)?.addEventListener("input", renderHubMartInfo);
+});
+
+/* ---- Manual analysis (single pass) — executes immediately if trade_allowed ---- */
+function analyzeHubMarket(symbolOverride){
+  if (symbolOverride) hubSelectSymbol(symbolOverride);
+  hubState.status = "ANALYZING";
+  renderHubStatus();
+
+  const pseudoBot = hubBuildPseudoBot(hubState.symbol);
+  const analysis = runAIAnalysis(pseudoBot);
+  hubState.lastAnalysis = analysis;
+  hubState.status = analysis.trade_allowed ? "TRADING" : "WAITING";
+  renderHubStatus();
+  renderHubDigitPanel();
+
+  if (analysis.trade_allowed) {
+    executeHubTrade(analysis.trade);
+  } else if (hubState.auto) {
+    const delaySec = Math.max(1, +hubGetField("hub-recheck").value || 5);
+    hubState.autoTimer = setTimeout(runHubAutoLoop, delaySec * 1000);
+  }
+}
+document.getElementById("hub-analyze-btn")?.addEventListener("click", () => analyzeHubMarket());
+
+/* ---- Auto mode — same recheck-loop pattern the AI bots already use ---- */
+function toggleHubAuto(){
+  hubState.auto = !hubState.auto;
+  const btn = document.getElementById("hub-auto-btn");
+  btn.textContent = `🤖 Auto: ${hubState.auto ? "ON" : "OFF"}`;
+  btn.classList.toggle("on", hubState.auto);
+  if (hubState.auto) {
+    runHubAutoLoop();
+  } else if (hubState.autoTimer) {
+    clearTimeout(hubState.autoTimer);
+    hubState.autoTimer = null;
+  }
+}
+document.getElementById("hub-auto-btn")?.addEventListener("click", toggleHubAuto);
+
+function runHubAutoLoop(){
+  if (!hubState.auto) return;
+  if (hubState.status === "TRADING") return; // wait for current contract to settle before re-analyzing
+  analyzeHubMarket();
+}
+
+/* ---- Execute + martingale, reusing the shared placeDigit() ---- */
+async function executeHubTrade(signal){
+  const baseStake = +hubGetField("hub-stake").value || 1;
+  const mult = +hubGetField("hub-mart-mult").value || 2;
+  const maxLevel = +hubGetField("hub-mart-max").value || 5;
+  const level = Math.min(hubState.martLevel, maxLevel);
+  const stake = level === 0 ? baseStake : +(baseStake * Math.pow(mult, level)).toFixed(2);
+  const ticks = +hubGetField("hub-ticks").value || 5;
+
+  hubState.status = "TRADING";
+  renderHubStatus();
+
+  const res = await placeDigit(signal.contract_type, hubState.symbol, ticks, stake, signal.barrier);
+  if (!res || !res.buy) {
+    hubState.status = "WAITING";
+    renderHubStatus();
+    if (hubState.auto) {
+      const delaySec = Math.max(1, +hubGetField("hub-recheck").value || 5);
+      hubState.autoTimer = setTimeout(runHubAutoLoop, delaySec * 1000);
+    }
+    return;
+  }
+  hubContractMap[res.buy.contract_id] = true;
+}
+
+function onHubContractSettled(contract){
+  const win = Number(contract.profit || 0) >= 0;
+  const maxLevel = +hubGetField("hub-mart-max").value || 5;
+  if (win) {
+    hubState.martLevel = 0;
+  } else if (hubState.martLevel < maxLevel) {
+    hubState.martLevel++;
+  } else {
+    hubState.martLevel = 0;
+  }
+  renderHubMartInfo();
+
+  hubState.status = "WAITING";
+  renderHubStatus();
+
+  if (hubState.auto) {
+    const delaySec = Math.max(1, +hubGetField("hub-recheck").value || 5);
+    hubState.autoTimer = setTimeout(runHubAutoLoop, delaySec * 1000);
+  }
+}
+
 /* ================= INIT ================= */
 initTickerStrip();
 initChart();
 renderAll();
+initHubMarketCards();
+renderHubDigitPanel();
+renderHubStatus();
+renderHubMartInfo();
 </script>
 </body>
 </html>
