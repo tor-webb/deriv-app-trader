@@ -107,10 +107,13 @@
   .status-pill.running{background:rgba(0,217,192,.15);color:var(--accent);}
   .status-pill.paused{background:rgba(255,176,32,.15);color:var(--warn);}
   .status-pill.stopped{background:rgba(107,118,132,.18);color:var(--muted);}
-  .bot-stats-mini{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:12px 0;}
+  .bot-stats-mini{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0;}
   .bot-stats-mini .mini{background:var(--panel-3);border-radius:8px;padding:8px 10px;}
   .bot-stats-mini .mini .l{font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px;}
   .bot-stats-mini .mini .v{font-family:'IBM Plex Mono',monospace;font-size:.92rem;font-weight:600;}
+  .bot-progress-track{height:4px;border-radius:2px;background:var(--panel-3);overflow:hidden;margin:2px 0 12px;}
+  .bot-progress-fill{height:100%;border-radius:2px;transition:width .3s ease;}
+  .bot-controls button.icon-btn{padding:6px 9px;}
   .bot-last-signal{font-size:.74rem;color:var(--muted);margin-bottom:12px;}
   .bot-last-signal b{color:var(--text);}
   .ai-panel{background:var(--panel-3);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:12px;}
@@ -896,6 +899,7 @@
                 </div>
                 <div class="ai-reason" id="hubStatusDetail">Waiting for analysis...</div>
               </div>
+              <button class="btn" id="hub-confirm-btn" style="display:none;width:100%;margin-top:10px;">✅ Confirm & Execute Trade</button>
             </div>
           </div>
 
@@ -1009,9 +1013,15 @@
 
         <!-- ================= BOTS ================= -->
         <div class="page" id="page-bots">
+          <div class="section-title" style="margin-bottom:14px;">🤖 Automated Bots <span class="hint">Runs while this browser tab stays open · stats below are computed live from real trades</span></div>
+          <div class="stat-grid" id="botsOverviewGrid"></div>
           <div class="bots-toolbar">
-            <div class="section-title" style="margin:0;">Automated Bots <span class="hint">Runs while this browser tab stays open</span></div>
-            <button class="btn" id="newBotBtn">+ New Bot</button>
+            <div class="hint" style="color:var(--muted);font-size:.8rem;">Manage every bot at once</div>
+            <div style="display:flex;gap:8px;">
+              <button class="btn" id="newBotBtn">+ New Bot</button>
+              <button class="btn btn-ghost" id="startAllBotsBtn">▶ Start All</button>
+              <button class="btn btn-ghost" id="stopAllBotsBtn">■ Stop All</button>
+            </div>
           </div>
           <div class="bots-empty" id="botsEmpty">No bots yet. Create one to start automated trading.</div>
           <div class="bots-grid" id="botsGrid"></div>
@@ -1417,6 +1427,7 @@ async function startTerminal(accountId, currency, accountType){
     document.getElementById("connDot").classList.add("live");
     await send({ balance: 1, subscribe: 1 });
     await send({ portfolio: 1 });
+    await loadSymbolPrecision();
     subscribeAllTicks();
     loadChart(activeSymbol, activeTF);
     enableTradeButtons();
@@ -1555,6 +1566,29 @@ function subscribeAllTicks(){
   SYMBOLS.forEach(s => send({ ticks: s.code, subscribe: 1 }));
 }
 
+// Each Deriv synthetic index quotes at its own fixed decimal precision (its "pip size") —
+// e.g. R_100 streams 2 decimals, R_50/R_75 stream 4. The digit contract's "last digit" is
+// defined as the last digit AT THAT NATIVE PRECISION, not at some fixed number of decimals.
+// Fallback table below is used until the real precision loads (or if that call fails).
+const symbolDecimals = { R_10:3, R_25:3, R_50:4, R_75:4, R_100:2, "1HZ100V":2 };
+
+async function loadSymbolPrecision(){
+  try {
+    const res = await send({ active_symbols: "brief", product_type: "basic" });
+    if (Array.isArray(res.active_symbols)) {
+      res.active_symbols.forEach(s => {
+        const pip = parseFloat(s.pip);
+        if (SYMBOLS.some(sym => sym.code === s.symbol) && pip > 0) {
+          const decimals = Math.round(-Math.log10(pip));
+          if (Number.isFinite(decimals) && decimals >= 0) symbolDecimals[s.symbol] = decimals;
+        }
+      });
+    }
+  } catch (e) {
+    console.warn("Could not load live symbol precision — using default decimal table.", e);
+  }
+}
+
 function updateTicker(symbol, price){
   const hist = tickHistory[symbol];
   if (!hist) return;
@@ -1562,10 +1596,11 @@ function updateTicker(symbol, price){
   hist.push(price);
   if (hist.length > 30) hist.shift();
 
-  // Real last-digit tracking, straight from the streamed tick quote
+  // Real last-digit tracking, at this symbol's own native quote precision
   const digits = digitHistory[symbol];
   if (digits) {
-    const str = Number(price).toFixed(4); // Deriv quotes typically carry enough decimals
+    const decimals = symbolDecimals[symbol] != null ? symbolDecimals[symbol] : 2;
+    const str = Number(price).toFixed(decimals);
     const lastDigit = +str[str.length - 1];
     digits.push(lastDigit);
     if (digits.length > 100) digits.shift();
@@ -2549,24 +2584,42 @@ function formatRunningTime(startedAt){
   return h > 0 ? `${h}h ${m}m` : m > 0 ? `${m}m ${s}s` : `${s}s`;
 }
 
+function renderBotsOverview(){
+  const grid = document.getElementById("botsOverviewGrid");
+  if (!grid) return;
+  const total = bots.length;
+  const active = bots.filter(b => b.status === "running").length;
+  const totalWins = bots.reduce((s,b) => s + b.stats.wins, 0);
+  const totalLosses = bots.reduce((s,b) => s + b.stats.losses, 0);
+  const avgWinRate = (totalWins + totalLosses) ? (totalWins / (totalWins + totalLosses) * 100) : 0;
+  const totalPL = bots.reduce((s,b) => s + b.stats.profit, 0);
+  grid.innerHTML =
+    statCard("Total Bots", total) +
+    statCard("Active", active, { tone: active > 0 ? "up" : undefined }) +
+    statCard("Avg Win Rate", (totalWins+totalLosses) ? avgWinRate.toFixed(1)+"%" : "—", { tone: avgWinRate >= 50 ? "up" : (totalWins+totalLosses ? "down" : undefined), sub: "From real settled trades" }) +
+    statCard("Total P/L", (totalPL>=0?"+":"")+fmt(totalPL)+" "+currentCurrency, { tone: totalPL >= 0 ? "up" : "down" });
+}
+
 function renderBots(){
   const grid = document.getElementById("botsGrid");
   const empty = document.getElementById("botsEmpty");
+  renderBotsOverview();
   if (!grid) return;
   if (!bots.length) { grid.innerHTML = ""; empty.style.display = "block"; return; }
   empty.style.display = "none";
 
   grid.innerHTML = bots.map(bot => {
     const s = bot.stats;
-    const winRate = s.totalTrades ? ((s.wins / s.totalTrades) * 100).toFixed(1) : "0.0";
+    const winRate = s.totalTrades ? ((s.wins / s.totalTrades) * 100) : 0;
     const controls = bot.status === "stopped"
       ? `<button class="primary" onclick="startBot('${bot.id}')">▶ Start</button>`
       : bot.status === "running"
-      ? `<button onclick="pauseBot('${bot.id}')">⏸ Pause</button><button class="danger" onclick="stopBot('${bot.id}')">⏹ Stop</button>`
+      ? `<button class="warn" onclick="pauseBot('${bot.id}')">⏸ Pause</button><button class="danger" onclick="stopBot('${bot.id}')">⏹ Stop</button>`
       : `<button class="primary" onclick="resumeBot('${bot.id}')">▶ Resume</button><button class="danger" onclick="stopBot('${bot.id}')">⏹ Stop</button>`;
 
     const tradeTypeLabel = { EVENODD:"Even/Odd", OVERUNDER:"Over/Under", MATCHDIFFER:"Match/Differ" }[bot.tradeType] || "Even/Odd";
     const strategyLabel = { fixed:"Fixed", trend:"Trend", reversal:"Reversal" }[bot.strategy] || "Fixed";
+    const barColor = s.totalTrades === 0 ? "var(--muted)" : winRate >= 50 ? "var(--up)" : "var(--down)";
     return `
     <div class="bot-card status-${bot.status}">
       <div class="accent-bar"></div>
@@ -2579,23 +2632,34 @@ function renderBots(){
       </div>
       <div class="bot-stats-mini">
         <div class="mini"><div class="l">Trades</div><div class="v">${s.totalTrades}</div></div>
-        <div class="mini"><div class="l">Win Rate</div><div class="v">${winRate}%</div></div>
+        <div class="mini"><div class="l">Win Rate</div><div class="v">${winRate.toFixed(1)}%</div></div>
         <div class="mini"><div class="l">P/L</div><div class="v ${s.profit>=0?'up-color':'down-color'}">${s.profit>=0?'+':''}${fmt(s.profit)}</div></div>
-        <div class="mini"><div class="l">Stake</div><div class="v">${fmt(s.currentStake ?? bot.initialStake)}</div></div>
-        <div class="mini"><div class="l">Mtg. Level</div><div class="v">${s.martingaleLevel}</div></div>
-        <div class="mini"><div class="l">Running</div><div class="v">${bot.status === "running" ? formatRunningTime(s.startedAt) : "—"}</div></div>
+        <div class="mini"><div class="l">M. Level</div><div class="v">${s.martingaleLevel}</div></div>
       </div>
+      <div class="bot-progress-track"><div class="bot-progress-fill" style="width:${winRate}%;background:${barColor};"></div></div>
       ${bot.strategy === "ai" ? renderAiPanel(bot) : ""}
-      <div class="bot-last-signal">Last signal: <b>${s.lastSignal || "—"}</b></div>
+      <div class="bot-last-signal">Last signal: <b>${s.lastSignal || "—"}</b> · Stake: <b>${fmt(s.currentStake ?? bot.initialStake)}</b> · Running: <b>${bot.status === "running" ? formatRunningTime(s.startedAt) : "—"}</b></div>
       <div class="bot-controls">
         ${controls}
-        <button onclick="openBotModal('${bot.id}')">✏ Edit</button>
-        <button onclick="duplicateBot('${bot.id}')">Duplicate</button>
-        <button onclick="deleteBot('${bot.id}')">Delete</button>
+        <button class="icon-btn" title="Edit" onclick="openBotModal('${bot.id}')">✎</button>
+        <button class="icon-btn" title="Delete" onclick="deleteBot('${bot.id}')">🗑</button>
       </div>
     </div>`;
   }).join("");
 }
+
+function startAllBots(){
+  if (!bots.length) { alert("No bots to start. Create one first."); return; }
+  bots.forEach(b => { if (b.status !== "running") startBot(b.id); });
+}
+function stopAllBots(){
+  const activeOnes = bots.filter(b => b.status === "running" || b.status === "paused");
+  if (!activeOnes.length) { alert("No active bots to stop."); return; }
+  activeOnes.forEach(b => stopBot(b.id, true));
+  renderBots();
+}
+document.getElementById("startAllBotsBtn")?.addEventListener("click", startAllBots);
+document.getElementById("stopAllBotsBtn")?.addEventListener("click", stopAllBots);
 
 // Structured AI decision readout: regime, confidence, and the concrete reason for
 // the current WAIT/BUY/NO_TRADE call — the same fields runAIAnalysis() computed.
@@ -2652,9 +2716,10 @@ let hubState = {
   contract: "DIGITEVEN",
   barrier: 5,
   auto: false,
-  status: "IDLE",        // IDLE | ANALYZING | WAITING | TRADING
+  status: "IDLE",        // IDLE | ANALYZING | WAITING | READY | TRADING
   martLevel: 0,
   lastAnalysis: null,
+  pendingTrade: null,    // signal awaiting manual confirmation (manual mode only)
   autoTimer: null,
   cardStatus: {},         // symbol -> "WAITING" | "GREEN" | "YELLOW" | "RED" | "GRAY"
 };
@@ -2794,27 +2859,65 @@ function renderHubMartInfo(){
   document.getElementById(id)?.addEventListener("input", renderHubMartInfo);
 });
 
-/* ---- Manual analysis (single pass) — executes immediately if trade_allowed ---- */
+/* ---- Manual analysis (single pass) ----
+   Auto mode: a qualifying signal executes immediately (existing behavior).
+   Manual mode: a qualifying signal is surfaced as "READY" and the user must
+   click Confirm & Execute — nothing is bought until they do. ---- */
 function analyzeHubMarket(symbolOverride){
   if (symbolOverride) hubSelectSymbol(symbolOverride);
   hubState.status = "ANALYZING";
+  hubState.pendingTrade = null;
+  hideHubConfirmButton();
   renderHubStatus();
 
   const pseudoBot = hubBuildPseudoBot(hubState.symbol);
   const analysis = runAIAnalysis(pseudoBot);
   hubState.lastAnalysis = analysis;
-  hubState.status = analysis.trade_allowed ? "TRADING" : "WAITING";
-  renderHubStatus();
-  renderHubDigitPanel();
 
   if (analysis.trade_allowed) {
-    executeHubTrade(analysis.trade);
-  } else if (hubState.auto) {
-    const delaySec = Math.max(1, +hubGetField("hub-recheck").value || 5);
-    hubState.autoTimer = setTimeout(runHubAutoLoop, delaySec * 1000);
+    if (hubState.auto) {
+      hubState.status = "TRADING";
+      renderHubStatus();
+      renderHubDigitPanel();
+      executeHubTrade(analysis.trade);
+    } else {
+      hubState.status = "READY";
+      hubState.pendingTrade = analysis.trade;
+      renderHubStatus();
+      renderHubDigitPanel();
+      showHubConfirmButton(analysis.trade);
+    }
+  } else {
+    hubState.status = "WAITING";
+    renderHubStatus();
+    renderHubDigitPanel();
+    if (hubState.auto) {
+      const delaySec = Math.max(1, +hubGetField("hub-recheck").value || 5);
+      hubState.autoTimer = setTimeout(runHubAutoLoop, delaySec * 1000);
+    }
   }
 }
 document.getElementById("hub-analyze-btn")?.addEventListener("click", () => analyzeHubMarket());
+
+function showHubConfirmButton(trade){
+  const btn = document.getElementById("hub-confirm-btn");
+  if (!btn) return;
+  btn.textContent = `✅ Confirm & Execute — ${trade.label}`;
+  btn.style.display = "block";
+}
+function hideHubConfirmButton(){
+  const btn = document.getElementById("hub-confirm-btn");
+  if (btn) btn.style.display = "none";
+}
+document.getElementById("hub-confirm-btn")?.addEventListener("click", () => {
+  if (!hubState.pendingTrade) return;
+  const trade = hubState.pendingTrade;
+  hubState.pendingTrade = null;
+  hideHubConfirmButton();
+  hubState.status = "TRADING";
+  renderHubStatus();
+  executeHubTrade(trade);
+});
 
 /* ---- Auto mode — same recheck-loop pattern the AI bots already use ---- */
 function toggleHubAuto(){
@@ -2823,6 +2926,9 @@ function toggleHubAuto(){
   btn.textContent = `🤖 Auto: ${hubState.auto ? "ON" : "OFF"}`;
   btn.classList.toggle("on", hubState.auto);
   if (hubState.auto) {
+    // Switching into auto discards any trade that was waiting on manual confirmation
+    hubState.pendingTrade = null;
+    hideHubConfirmButton();
     runHubAutoLoop();
   } else if (hubState.autoTimer) {
     clearTimeout(hubState.autoTimer);
