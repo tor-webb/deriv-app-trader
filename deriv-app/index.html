@@ -474,6 +474,80 @@
   .hub-action-row{display:flex;gap:10px;margin-top:16px;}
   .hub-action-row .btn, .hub-action-row .btn-ghost{flex:1;}
   #hub-auto-btn.on{background:var(--accent-dim);color:var(--accent);border-color:var(--accent);}
+
+  /* =====================================================================
+     MOBILE / APP OPTIMIZATION
+     Sidebar becomes a top-triggered slide-in drawer; layouts stack;
+     tables scroll horizontally instead of squeezing; header condenses.
+     ===================================================================== */
+  .hamburger-btn{
+    display:none;background:transparent;border:1px solid var(--border);color:var(--text);
+    width:38px;height:38px;border-radius:8px;cursor:pointer;flex-shrink:0;
+    align-items:center;justify-content:center;padding:0;
+  }
+  .hamburger-btn span{display:block;width:16px;height:2px;background:var(--text);position:relative;}
+  .hamburger-btn span::before,.hamburger-btn span::after{content:"";position:absolute;left:0;width:16px;height:2px;background:var(--text);}
+  .hamburger-btn span::before{top:-5px;}
+  .hamburger-btn span::after{top:5px;}
+  .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(4,6,10,.55);z-index:95;}
+  .sidebar-overlay.active{display:block;}
+
+  @media(max-width:900px){
+    .app-shell{grid-template-columns:1fr;}
+    .hamburger-btn{display:flex;}
+    .sidebar{
+      position:fixed;top:0;left:0;bottom:0;width:250px;max-width:80vw;z-index:100;
+      transform:translateX(-100%);transition:transform .22s ease;box-shadow:var(--shadow);
+    }
+    .sidebar.open{transform:translateX(0);}
+
+    header{padding:0 12px;gap:10px;height:56px;}
+    header .page-title{font-size:.95rem;}
+    .btn-danger#stopAllBtn{padding:8px 10px;font-size:.72rem;margin-right:0;}
+    .account-box{gap:8px;}
+    .account-box .btn-ghost{padding:7px 10px;font-size:.75rem;}
+    #balanceDisplay{font-size:.8rem;}
+
+    .page-content{padding:14px;}
+    .stat-grid{grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:18px;}
+    .stat-card{padding:12px 14px;}
+    .stat-card .value{font-size:1.2rem;}
+
+    .trade-layout, .hub-layout, .grid-2{grid-template-columns:1fr;}
+    #chartContainer{height:280px;}
+    .chart-toolbar{flex-wrap:wrap;}
+
+    .duo{flex-direction:column;gap:0;}
+    .duo .field{width:100%;}
+
+    .hub-market-grid{grid-template-columns:repeat(2,1fr);gap:10px;}
+    .bots-grid{grid-template-columns:1fr;}
+    .bots-toolbar{flex-direction:column;align-items:flex-start;gap:10px;}
+    .bots-toolbar > div[style*="display:flex"]{width:100%;}
+    .bots-toolbar button{flex:1;}
+
+    /* Tables: allow horizontal scroll instead of crushing columns */
+    .table-card{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+    .table-card table{min-width:640px;}
+
+    .modal-overlay{padding:0;align-items:stretch;}
+    .modal-box{max-width:100%;border-radius:0;min-height:100vh;display:flex;flex-direction:column;}
+    .modal-body{max-height:none;flex:1;}
+
+    .lp-nav{padding:12px 16px;gap:10px;}
+    .lp-nav .lp-links{display:none;}
+    .lp-container{padding:0 16px;}
+    .lp-hero{padding:32px 0 44px;}
+    .lp-cta-band{padding:36px 20px;}
+  }
+
+  @media(max-width:480px){
+    .stat-grid, .hub-market-grid{grid-template-columns:1fr 1fr;}
+    .bot-stats-mini{grid-template-columns:repeat(2,1fr);}
+    .trade-buttons{flex-direction:column;}
+    .hub-action-row{flex-direction:column;}
+    .lp-hero h1{font-size:1.75rem;}
+  }
 </style>
 </head>
 <body>
@@ -680,6 +754,8 @@
 <div id="terminal">
   <div class="app-shell">
 
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
     <!-- Sidebar -->
     <div class="sidebar">
       <div class="logo brand"><span class="dot"></span>QUANTUM</div>
@@ -698,6 +774,7 @@
     <!-- Main column -->
     <div class="main">
       <header>
+        <button class="hamburger-btn" id="hamburgerBtn" aria-label="Open menu"><span></span></button>
         <div class="page-title" id="pageTitle">Dashboard</div>
         <div class="spacer"></div>
         <button class="btn btn-danger" id="stopAllBtn" style="margin-right:6px;">Stop All Trades</button>
@@ -1519,8 +1596,24 @@ document.querySelectorAll(".navitem").forEach(item => {
     document.getElementById(`page-${p}`).classList.add("active");
     document.getElementById("pageTitle").textContent = PAGE_TITLES[p] || p;
     if (p === "analytics") renderEquityChart();
+    closeSidebarDrawer();
   };
 });
+
+/* ================= MOBILE SIDEBAR DRAWER ================= */
+function openSidebarDrawer(){
+  document.querySelector(".sidebar").classList.add("open");
+  document.getElementById("sidebarOverlay").classList.add("active");
+}
+function closeSidebarDrawer(){
+  document.querySelector(".sidebar").classList.remove("open");
+  document.getElementById("sidebarOverlay").classList.remove("active");
+}
+document.getElementById("hamburgerBtn")?.addEventListener("click", () => {
+  const sb = document.querySelector(".sidebar");
+  sb.classList.contains("open") ? closeSidebarDrawer() : openSidebarDrawer();
+});
+document.getElementById("sidebarOverlay")?.addEventListener("click", closeSidebarDrawer);
 
 /* ================= TICKER STRIP ================= */
 function initTickerStrip(){
